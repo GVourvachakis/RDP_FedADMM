@@ -13,8 +13,8 @@ def rdp_fed_admm():
     logger = logging.getLogger(__name__)
 
     # TODO: real data
-    X = np.random.random((5, 5))
-    Y = np.random.random((5, 5))
+    X = np.random.random((100, 5))
+    Y = np.random.random((100, 1))
 
     logging.basicConfig(format="[%(levelname)s] %(asctime)s %(message)s",
                         datefmt='%m/%d/%Y %I:%M:%S %p',
@@ -31,7 +31,6 @@ def rdp_fed_admm():
             logger.info(f"Listening on {args.address}:{args.port}")
             preds = srv.fit(X, Y).transform(X)
             logger.warning("MAE: {:.3f}".format(np.abs(preds - Y).mean()))
-            
     else:
         raise RuntimeError("Undefined behaviour")
 

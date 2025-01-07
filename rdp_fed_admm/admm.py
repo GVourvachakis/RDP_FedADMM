@@ -67,7 +67,7 @@ class ADMMClient(_ADMMBase, Client):
         n_iter: int = 10
     ) -> Self:
         dim_weights: tuple[int, int] = (X.shape[-1], Y.shape[-1])
-        x: FArr = np.zeros_like(X)
+        x: FArr = np.zeros(dim_weights)
         z: FArr = np.zeros_like(x)
         u: FArr = np.zeros_like(x)
         du: FArr = np.zeros_like(u)
