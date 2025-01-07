@@ -4,7 +4,7 @@ from typing import cast
 import numpy as np
 
 from ._parser import Args, parser
-from .lasso_admm import *
+from .objectives.lasso import LassoADMMClient, LassoADMMServer
 
 
 def rdp_fed_admm():
