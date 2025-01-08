@@ -18,12 +18,8 @@ class LassoADMMClient(ADMMClient):
         clipping_threshold: float = 0.1,
         cache_factorizations: bool = True,
     ) -> None:
-        super().__init__(addr, port, seed, step_size, penalty_term)
-        self._use_cache: bool = cache_factorizations
-        self._cache: dict[str, FArr] = {}
-
-    def _cache_miss(self, key: str) -> bool:
-        return key not in self._cache or not self._use_cache
+        super().__init__(addr, port, seed, step_size, penalty_term,
+                         cache_factorizations)
 
     @override
     def _x_update(self, X: FArr, Y: FArr, x: FArr, z: FArr, u: FArr) -> FArr:

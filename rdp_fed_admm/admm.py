@@ -42,6 +42,7 @@ class ADMMClient(_ADMMBase, Client):
         step_size: float = 0.3,
         penalty_term: float = 0.6,
         clipping_threshold: float = 0.1,
+        cache_factorizations: bool = True,
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
         Client.__init__(self, addr, port)
@@ -51,11 +52,16 @@ class ADMMClient(_ADMMBase, Client):
         self._clip_thresh: float = clipping_threshold
         self._X: FArr | None = None
         self._Y: FArr | None = None
+        self._use_cache: bool = cache_factorizations
+        self._cache: dict[str, FArr] = {}
 
     @staticmethod
     def _clip(v: FArr, thresh: Float) -> FArr:
         scale: Float = np.min(np.array([thresh, np.linalg.norm(v)]))
         return v * scale
+
+    def _cache_miss(self, key: str) -> bool:
+        return key not in self._cache or not self._use_cache
 
     def _x_update(self, X: FArr, Y: Vec, x: FArr, z: FArr, u: FArr) -> FArr:
         raise NotImplementedError("This is meant to be overridden")
