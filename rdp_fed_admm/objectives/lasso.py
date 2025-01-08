@@ -53,8 +53,8 @@ class LassoADMMServer(ADMMServer):
         )
 
     @staticmethod
-    def soft_threshold(x: FArr, threshold: float) -> FArr:
-        return np.sign(x) * np.max(np.abs(x) - threshold, 0)
+    def soft_threshold(x: FArr, thresh: float) -> FArr:
+        return np.clip(x - thresh, 0, None) + np.clip(x + thresh, None, 0)
 
     @override
     def _z_update(self, z: FArr):
