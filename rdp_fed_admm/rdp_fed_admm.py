@@ -4,7 +4,7 @@ from typing import cast
 import numpy as np
 
 from ._parser import Args, parser
-from .objectives.lasso import LassoADMMClient, LassoADMMServer
+from .objectives.elasticnet import ElasticNetADMMClient, ElasticNetADMMServer
 
 
 def rdp_fed_admm():
@@ -23,11 +23,11 @@ def rdp_fed_admm():
 
     if args.client:
         logger.info(f"Registering client for {args.address}:{args.port}")
-        with LassoADMMClient(args.address, args.port) as cli:
+        with ElasticNetADMMClient(args.address, args.port) as cli:
             _ = cli.fit(X, Y)
     elif args.server:
         logger.info(f"Registering server for {args.address}:{args.port}")
-        with LassoADMMServer(args.address, args.port, max_clients=2) as srv:
+        with ElasticNetADMMServer(args.address, args.port, max_clients=2) as srv:
             logger.info(f"Listening on {args.address}:{args.port}")
             preds = srv.fit(X, Y).transform(X)
             logger.warning("MAE: {:.3f}".format(np.abs(preds - Y).mean()))

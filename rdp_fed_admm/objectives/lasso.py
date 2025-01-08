@@ -36,7 +36,6 @@ class LassoADMMClient(ADMMClient):
         return self._cache["lhs"] @ (self._cache["XtY"] + rho * (z - u))
 
 
-@final
 class LassoADMMServer(ADMMServer):
     def __init__(
         self,
