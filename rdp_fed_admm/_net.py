@@ -72,7 +72,6 @@ class _NetworkBase(ContextDecorator):
         # strip header and parse data size, then get data
         # until data_size bytes have been written
         data_size = int.from_bytes(buf[:self.SIZLEN])
-        print(data_size)
         buf = buf[self.SIZLEN:]
         bytes_written += stream.write(buf)
         while bytes_written < data_size:
