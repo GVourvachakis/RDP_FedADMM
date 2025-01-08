@@ -17,7 +17,6 @@ class _ADMMBase:
         step_size: float = 0.3,
         penalty_term: float = 0.6,
     ) -> None:
-        super().__init__()
         self.rng: Generator = np.random.default_rng(seed)
         self._step_size: float = step_size
         self._penalty_term: float = penalty_term
