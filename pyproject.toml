@@ -29,3 +29,5 @@ rdp-fed-admm = "rdp_fed_admm.rdp_fed_admm:rdp_fed_admm"
 
 [tool.pyright]
 reportConstantRedefinition = false
+reportUnsafeMultipleInheritance = false
+reportExplicitAny = false
