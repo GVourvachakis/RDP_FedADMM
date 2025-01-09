@@ -34,6 +34,18 @@ _ = parser.add_argument(
     default=None,
 )
 
+_ = parser.add_argument(
+    "-d", "--dataset",
+    help="CSV File containing the dateset",
+    type=str,
+)
+
+_ = parser.add_argument(
+    "-t", "--target",
+    help="Index of the target column in the dataset",
+    type=int,
+)
+
 _instance_type = parser.add_mutually_exclusive_group(required=True)
 _ = _instance_type.add_argument(
     "-c", "--client",
@@ -59,4 +71,3 @@ _ = _connection.add_argument(
     default=50000,
     help="Port to {listen,connect} to when running as a {server, client}",
 )
-
