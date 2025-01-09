@@ -25,7 +25,7 @@ class _ADMMBase:
     def fit(self, X: FArr, Y: Vec) -> Self:
         return self
 
-    def transform(self, X: FArr) -> FArr:
+    def predict(self, X: FArr) -> FArr:
         if self._coeffs is None:
             raise RuntimeError("Not fitted")
 
