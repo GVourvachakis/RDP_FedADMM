@@ -22,9 +22,6 @@ class _ADMMBase:
         self._penalty_term: float = penalty_term
         self._coeffs: FArr | None = None
 
-    def fit(self, X: FArr, Y: Vec) -> Self:
-        return self
-
     def predict(self, X: FArr) -> FArr:
         if self._coeffs is None:
             raise RuntimeError("Not fitted")
@@ -75,15 +72,14 @@ class ADMMClient(_ADMMBase, Client):
     def _x_update(self, X: FArr, Y: Vec, x: FArr, z: FArr, u: FArr) -> FArr:
         raise NotImplementedError("This is meant to be overridden")
 
-    @override
     def fit(
         self,
         X: FArr,
         Y: Vec,
-        n_iter: int = 10
+        n_iter: int = 100
     ) -> Self:
-        dim_weights: tuple[int, int] = (X.shape[-1], Y.shape[-1])
-        x: FArr = np.zeros(dim_weights)
+        n_features = X.shape[1]
+        x: FArr = np.zeros(n_features)
         z: FArr = np.zeros_like(x)
         u: FArr = np.zeros_like(x)
         du: FArr = np.zeros_like(u)
@@ -103,7 +99,7 @@ class ADMMClient(_ADMMBase, Client):
             x = self._x_update(X, Y, 2 * z - u, u, z)
             rsd = self._clip(x - z, self._clip_thresh)
             sensitivity = self._edma(np.abs(rsd), sensitivity, self._momentum)
-            noise = 0.5 * self.rng.random(dim_weights)
+            noise = 0.5 * self.rng.random(X.shape[1])
             du = 2 * self._step * (rsd + noise)
 
             self.send_array(sensitivity)
@@ -138,21 +134,18 @@ class ADMMServer(_ADMMBase, Server):
     def _z_update(self, z: FArr) -> FArr:
         raise NotImplementedError("This is meant to be overridden")
 
-    @override
     def fit(
         self,
-        X: FArr,
-        Y: Vec,
-        n_iter: int = 2,
+        n_features: int,
+        n_iter: int = 100,
     ) -> Self:
-        dim_weights: tuple[int, int] = (X.shape[-1], Y.shape[-1])
-        du: FArr = np.zeros(dim_weights)
+        du: FArr = np.zeros(n_features)
         z: FArr = np.zeros_like(du)
 
         self.activate_server()
         self._n_clients = len(self._client_conn)
 
-        senses = np.zeros((self._n_clients, dim_weights[0]))
+        senses = np.zeros((self._n_clients, n_features))
 
         info("Collecting dataset sizes from clients")
         data_weights = []
@@ -181,7 +174,7 @@ class ADMMServer(_ADMMBase, Server):
                 for fd in rfds:
                     idx = conns.index(fd)
                     weight = data_weights[idx]
-                    senses[idx,:] = self.recv_array(fd).ravel()
+                    senses[idx,:] = self.recv_array(fd)
                     senses[idx,:] *= weight
                     du += weight * self.recv_array(fd)
                     subset.remove(fd)
@@ -189,7 +182,7 @@ class ADMMServer(_ADMMBase, Server):
             agg_senses = senses.sum(axis=0)  # agg over clients
             agg_senses /= agg_senses.max()   # normalize
             elastic_weights = 1 + self._boost - agg_senses
-            du *= np.atleast_2d(elastic_weights).T
+            du *= elastic_weights
             # du /= nsubs
             z = self._z_update(du)
 

@@ -46,6 +46,19 @@ _ = parser.add_argument(
     type=int,
 )
 
+_ = parser.add_argument(
+    "-nf", "--number-features",
+    help="How many features there are in the dataset",
+    type=int,
+)
+
+_ = parser.add_argument(
+    "-f", "--features",
+    help="How many features there are in the dataset",
+    type=int,
+    default=None,
+)
+
 _instance_type = parser.add_mutually_exclusive_group(required=True)
 _ = _instance_type.add_argument(
     "-c", "--client",

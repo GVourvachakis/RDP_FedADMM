@@ -10,11 +10,15 @@ from .objectives.elasticnet import ElasticNetADMMClient, ElasticNetADMMServer
 def rdp_fed_admm():
     args = Args()
     args = parser.parse_args(namespace=args)
+
     logger = logging.getLogger(__name__)
 
-    # TODO: real data
-    X = np.random.random((100, 5))
-    Y = np.random.random((100, 1))
+    fdata: str = args.dataset
+    target_col: int = args.target
+
+    data = np.genfromtxt(fdata, delimiter=",", skip_header=1)
+    Y = data[:, target_col]
+    X = np.delete(data, target_col, axis=1)
 
     logging.basicConfig(format="[%(levelname)s] %(asctime)s %(message)s",
                         datefmt='%m/%d/%Y %I:%M:%S %p',
@@ -29,7 +33,7 @@ def rdp_fed_admm():
         logger.info(f"Registering server for {args.address}:{args.port}")
         with ElasticNetADMMServer(args.address, args.port, max_clients=2) as srv:
             logger.info(f"Listening on {args.address}:{args.port}")
-            preds = srv.fit(X, Y).predict(X)
+            preds = srv.fit(args.features).predict(X)
             logger.warning("MAE: {:.3f}".format(np.abs(preds - Y).mean()))
     else:
         raise RuntimeError("Undefined behaviour")

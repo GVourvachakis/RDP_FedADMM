@@ -6,7 +6,6 @@ from .._types import *
 from ..admm import ADMMClient, ADMMServer
 
 
-@final
 class LassoADMMClient(ADMMClient):
     def __init__(
         self,
