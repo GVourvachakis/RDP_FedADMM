@@ -47,12 +47,6 @@ _ = parser.add_argument(
 )
 
 _ = parser.add_argument(
-    "-nf", "--number-features",
-    help="How many features there are in the dataset",
-    type=int,
-)
-
-_ = parser.add_argument(
     "-f", "--features",
     help="How many features there are in the dataset",
     type=int,
