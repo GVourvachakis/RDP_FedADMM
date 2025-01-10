@@ -58,14 +58,6 @@ class ADMMClient(_ADMMBase, Client):
         scale: Float = np.min(np.array([thresh, np.linalg.norm(v)]))
         return v * scale
 
-    @staticmethod
-    def _edma(x: FArr, s: FArr, alpha: float) -> FArr:
-        """Exponentially decaying moving average.
-
-        Returns s' := αs + (1-α)x
-        """
-        return alpha * s + (1-alpha) * x
-
     def _cache_miss(self, key: str) -> bool:
         return key not in self._cache or not self._use_cache
 
@@ -78,15 +70,11 @@ class ADMMClient(_ADMMBase, Client):
         Y: Vec,
         n_iter: int = 100
     ) -> Self:
-        n_features = X.shape[1]
-        x: FArr = np.zeros(n_features)
+        dim_weights: int = X.shape[1]
+        x: FArr = np.zeros(dim_weights)
         z: FArr = np.zeros_like(x)
         u: FArr = np.zeros_like(x)
         du: FArr = np.zeros_like(u)
-        sensitivity: FArr = np.zeros_like(x)
-
-        # local dataset size: used for weighting
-        self.send_array(np.array(X.shape[0]))
 
         for _ in range(n_iter):
             info("Waiting for z")
@@ -96,13 +84,12 @@ class ADMMClient(_ADMMBase, Client):
             except ConnectionResetError:
                 raise
 
+
             x = self._x_update(X, Y, 2 * z - u, u, z)
             rsd = self._clip(x - z, self._clip_thresh)
-            sensitivity = self._edma(np.abs(rsd), sensitivity, self._momentum)
-            noise = 0.5 * self.rng.random(X.shape[1])
+            noise = 0.5 * self.rng.random(dim_weights)  # TODO: FIX
             du = 2 * self._step * (rsd + noise)
 
-            self.send_array(sensitivity)
             self.send_array(du)
 
             u += du
@@ -139,28 +126,19 @@ class ADMMServer(_ADMMBase, Server):
         n_features: int,
         n_iter: int = 100,
     ) -> Self:
-        du: FArr = np.zeros(n_features)
+        dim_weights = n_features
+        du: FArr = np.zeros(dim_weights)
         z: FArr = np.zeros_like(du)
 
         self.activate_server()
         self._n_clients = len(self._client_conn)
-
-        senses = np.zeros((self._n_clients, n_features))
-
-        info("Collecting dataset sizes from clients")
-        data_weights = []
-        for client in self._client_conn.values():
-            data_weights.append(self.recv_array(client))
-        data_weights = np.array(data_weights).astype(float)
-        data_weights /= data_weights.sum()
-        data_weights = cast(FArr, data_weights)
 
         conns = list(self._client_conn.values())
 
         subs_size = max(1, int(self._n_clients * self._subset_size))
         for i in range(n_iter):
             subset = sample(conns, subs_size)
-            # nsubs = len(subset)
+            nsubs = len(subset)
 
             for fd in subset:
                 self.send_array(z, fd)
@@ -173,17 +151,10 @@ class ADMMServer(_ADMMBase, Server):
 
                 for fd in rfds:
                     idx = conns.index(fd)
-                    weight = data_weights[idx]
-                    senses[idx,:] = self.recv_array(fd)
-                    senses[idx,:] *= weight
-                    du += weight * self.recv_array(fd)
+                    du += self.recv_array(fd)
                     subset.remove(fd)
 
-            agg_senses = senses.sum(axis=0)  # agg over clients
-            agg_senses /= agg_senses.max()   # normalize
-            elastic_weights = 1 + self._boost - agg_senses
-            du *= elastic_weights
-            # du /= nsubs
+            du /= nsubs
             z = self._z_update(du)
 
         self._coeffs = z

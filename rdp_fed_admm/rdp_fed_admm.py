@@ -4,7 +4,7 @@ from typing import cast
 import numpy as np
 
 from ._parser import Args, parser
-from .objectives.elasticnet import ElasticNetADMMClient, ElasticNetADMMServer
+from .objectives.elasticnet import LassoADMMClient, LassoADMMServer
 
 
 def rdp_fed_admm():
@@ -29,13 +29,13 @@ def rdp_fed_admm():
 
     if args.client:
         logger.info(f"Registering client for {args.address}:{args.port}")
-        with ElasticNetADMMClient(args.address, args.port) as cli:
-            _ = cli.fit(X, Y, NITER)
+        with LassoADMMClient(args.address, args.port) as cli:
+            _ = cli.fit(X, Y, n_iter)
     elif args.server:
         logger.info(f"Registering server for {args.address}:{args.port}")
-        with ElasticNetADMMServer(args.address, args.port, max_clients=1) as srv:
+        with LassoADMMServer(args.address, args.port, max_clients=1) as srv:
             logger.info(f"Listening on {args.address}:{args.port}")
-            preds = srv.fit(args.features, NITER).predict(X)
+            preds = srv.fit(n_features, n_iter).predict(X)
             logger.warning("MAE: {:.3f}".format(np.abs(preds - Y).mean()))
     else:
         raise RuntimeError("Undefined behaviour")
