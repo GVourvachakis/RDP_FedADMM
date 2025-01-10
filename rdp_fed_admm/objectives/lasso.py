@@ -26,7 +26,7 @@ class LassoADMMClient(ADMMClient):
 
         if self._cache_miss("lhs"):
             XtX: FArr = X.T @ X
-            lhs = np.linalg.inv(XtX + rho * np.ones_like(XtX))
+            lhs = np.linalg.inv(XtX + rho * np.eye(*XtX.shape))
             self._cache["lhs"] = lhs
 
         if self._cache_miss("XtY"):
