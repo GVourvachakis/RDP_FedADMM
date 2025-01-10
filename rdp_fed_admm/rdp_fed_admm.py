@@ -13,6 +13,8 @@ def rdp_fed_admm():
 
     logger = logging.getLogger(__name__)
 
+    NITER = 50
+
     fdata: str = args.dataset
     target_col: int = args.target
 
@@ -28,12 +30,12 @@ def rdp_fed_admm():
     if args.client:
         logger.info(f"Registering client for {args.address}:{args.port}")
         with ElasticNetADMMClient(args.address, args.port) as cli:
-            _ = cli.fit(X, Y)
+            _ = cli.fit(X, Y, NITER)
     elif args.server:
         logger.info(f"Registering server for {args.address}:{args.port}")
-        with ElasticNetADMMServer(args.address, args.port, max_clients=2) as srv:
+        with ElasticNetADMMServer(args.address, args.port, max_clients=1) as srv:
             logger.info(f"Listening on {args.address}:{args.port}")
-            preds = srv.fit(args.features).predict(X)
+            preds = srv.fit(args.features, NITER).predict(X)
             logger.warning("MAE: {:.3f}".format(np.abs(preds - Y).mean()))
     else:
         raise RuntimeError("Undefined behaviour")

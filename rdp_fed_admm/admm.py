@@ -157,10 +157,10 @@ class ADMMServer(_ADMMBase, Server):
 
         conns = list(self._client_conn.values())
 
+        subs_size = max(1, int(self._n_clients * self._subset_size))
         for i in range(n_iter):
-            print(i)
-            subset = sample(conns, int(self._n_clients * self._subset_size))
-            nsubs = len(subset)
+            subset = sample(conns, subs_size)
+            # nsubs = len(subset)
 
             for fd in subset:
                 self.send_array(z, fd)
