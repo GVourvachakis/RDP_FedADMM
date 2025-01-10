@@ -35,18 +35,26 @@ _ = parser.add_argument(
 )
 
 _ = parser.add_argument(
+    "-n", "--n-iter",
+    help="How many optimization rounds to eval before stopping",
+    type=int,
+    default=100,
+)
+
+_data = parser.add_argument_group(description="Dataset")
+_ = _data.add_argument(
     "-d", "--dataset",
     help="CSV File containing the dateset",
     type=str,
 )
 
-_ = parser.add_argument(
+_ = _data.add_argument(
     "-t", "--target",
     help="Index of the target column in the dataset",
     type=int,
 )
 
-_ = parser.add_argument(
+_ = _data.add_argument(
     "-f", "--features",
     help="How many features there are in the dataset",
     type=int,

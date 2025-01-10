@@ -13,10 +13,10 @@ def rdp_fed_admm():
 
     logger = logging.getLogger(__name__)
 
-    NITER = 50
-
     fdata: str = args.dataset
+    n_features: int = args.features
     target_col: int = args.target
+    n_iter: int = args.n_iter
 
     data = np.genfromtxt(fdata, delimiter=",", skip_header=1)
     Y = data[:, target_col]
