@@ -6,18 +6,8 @@ from .lasso import LassoADMMClient, LassoADMMServer
 
 @final
 class ElasticNetADMMClient(LassoADMMClient):
-    def __init__(
-        self,
-        addr: str,
-        port: int,
-        seed: int | None = None,
-        step_size: float = 0.3,
-        penalty_term: float = 0.6,
-        clipping_threshold: float = 0.1,
-        cache_factorizations: bool = True,
-    ) -> None:
-        super().__init__(addr, port, seed, step_size, penalty_term,
-                         cache_factorizations)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
 
 @final
