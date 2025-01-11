@@ -100,6 +100,7 @@ class ADMMClient(_ADMMBase, Client):
             rsd = self._clip(x - z, self._clip_thresh)
             sensitivity = self._edma(np.abs(rsd), sensitivity, self._momentum)
             noise = 0.5 * self.rng.random(X.shape[1])
+            noise = cast(FArr, noise)
             du = 2 * self._step * (rsd + noise)
 
             self.send_array(sensitivity)
