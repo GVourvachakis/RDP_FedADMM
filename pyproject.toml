@@ -31,3 +31,4 @@ rdp-fed-admm = "rdp_fed_admm.rdp_fed_admm:rdp_fed_admm"
 reportConstantRedefinition = false
 reportUnsafeMultipleInheritance = false
 reportExplicitAny = false
+reportAny = false
