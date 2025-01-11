@@ -32,6 +32,10 @@ class LassoADMMClient(ADMMClient):
         if self._cache_miss("XtY"):
             self._cache["XtY"] = X.T @ Y
 
+        # print("lhs: ", self._cache["lhs"].mean(),
+        #       "XtY: ", self._cache["XtY"].mean(),
+        #       "PRP: ", rho * (z - u).mean())
+
         return self._cache["lhs"] @ (self._cache["XtY"] + rho * (z - u))
 
 

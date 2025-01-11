@@ -29,7 +29,7 @@ class ElasticNetADMMServer(LassoADMMServer):
         max_clients: int,
         seed: int | None = None,
         step_size: float = 0.3,
-        ridge_multiplier: float = 0.1,
+        ridge_multiplier: float = 1.,
         penalty_term: float = 0.6,
         subset_size: float = 0.7,
     ) -> None:

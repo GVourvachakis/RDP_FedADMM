@@ -38,7 +38,6 @@ class ADMMClient(_ADMMBase, Client):
         step_size: float = 0.3,
         penalty_term: float = 0.6,
         clipping_threshold: float = 0.1,
-        sensitivity_momentum: float = 0.93,
         cache_factorizations: bool = True,
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
@@ -49,7 +48,6 @@ class ADMMClient(_ADMMBase, Client):
         self._clip_thresh: float = clipping_threshold
         self._X: FArr | None = None
         self._Y: FArr | None = None
-        self._momentum: float = sensitivity_momentum
         self._use_cache: bool = cache_factorizations
         self._cache: dict[str, FArr] = {}
 
@@ -86,15 +84,18 @@ class ADMMClient(_ADMMBase, Client):
 
 
             x = self._x_update(X, Y, 2 * z - u, u, z)
-            rsd = self._clip(x - z, self._clip_thresh)
-            noise = 0.5 * self.rng.random(dim_weights)  # TODO: FIX
+            # rsd = self._clip(x - z, self._clip_thresh)
+            rsd = x - z
+            # noise = 0.5 * self.rng.random(dim_weights)  # TODO: FIX
+            noise = 0
             du = 2 * self._step * (rsd + noise)
 
             self.send_array(du)
 
             u += du
 
-        self._coeffs = x
+            self._coeffs = x
+            print(f"{Y.mean():.2e}, {(X @ x).mean():.2e}, {x.mean():.2e}, {z.mean():.2e}, {u.mean():.2e}")
 
         return self
 
