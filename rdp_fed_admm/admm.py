@@ -6,6 +6,7 @@ from typing import Self, cast, override
 import numpy as np
 from numpy.random import Generator
 
+from ._loss import get_loss
 from ._net import *
 from ._types import *
 
@@ -39,6 +40,7 @@ class ADMMClient(_ADMMBase, Client):
         penalty_term: float = 0.6,
         clipping_threshold: float = 0.1,
         cache_factorizations: bool = True,
+        loss: str | None = None,
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
         Client.__init__(self, addr, port)
@@ -50,6 +52,15 @@ class ADMMClient(_ADMMBase, Client):
         self._Y: FArr | None = None
         self._use_cache: bool = cache_factorizations
         self._cache: dict[str, FArr] = {}
+
+        self._loss_func: MLoss | None = None
+        self._loss: list[float] = []
+        if loss is not None:
+            self._loss_func = get_loss(loss)
+
+    @property
+    def training_loss(self) -> FArr:
+        return np.array(self._loss)
 
     @staticmethod
     def _clip(v: FArr, thresh: Float) -> FArr:
@@ -82,7 +93,6 @@ class ADMMClient(_ADMMBase, Client):
             except ConnectionResetError:
                 raise
 
-
             x = self._x_update(X, Y, 2 * z - u, u, z)
             # rsd = self._clip(x - z, self._clip_thresh)
             rsd = x - z
@@ -93,9 +103,13 @@ class ADMMClient(_ADMMBase, Client):
             self.send_array(du)
 
             u += du
+            self._coeffs = x
 
             self._coeffs = x
             print(f"{Y.mean():.2e}, {(X @ x).mean():.2e}, {x.mean():.2e}, {z.mean():.2e}, {u.mean():.2e}")
+            if self._loss_func is not None:
+                preds = self.predict(X)
+                self._loss.append(self._loss_func(Y, preds))
 
         return self
 

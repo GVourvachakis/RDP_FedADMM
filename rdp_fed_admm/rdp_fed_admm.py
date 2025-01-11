@@ -35,6 +35,7 @@ def rdp_fed_admm():
         log.info(f"Registering client for {args.address}:{args.port}")
         with ElasticNetADMMClient(args.address, args.port, loss="mae") as cli:
             _ = cli.fit(X, Y, n_iter)
+            breakpoint()
     elif args.server:
         log.info(f"Registering server for {args.address}:{args.port}")
         with ElasticNetADMMServer(args.address, args.port, max_clients=1) as srv:
