@@ -47,8 +47,6 @@ class ADMMClient(_ADMMBase, Client):
         self._coeffs: FArr | None
         self._step: float = step_size
         self._clip_thresh: float = clipping_threshold
-        self._X: FArr | None = None
-        self._Y: FArr | None = None
         self._momentum: float = sensitivity_momentum
         self._use_cache: bool = cache_factorizations
         self._cache: dict[str, FArr] = {}
