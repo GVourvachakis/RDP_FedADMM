@@ -1,4 +1,4 @@
-from logging import info
+from logging import getLogger
 from random import sample
 from select import select
 from typing import Self, cast, override
@@ -9,6 +9,8 @@ from numpy.random import Generator
 from ._loss import get_loss
 from ._net import *
 from ._types import *
+
+log = getLogger(__name__)
 
 
 class _ADMMBase:
@@ -86,7 +88,7 @@ class ADMMClient(_ADMMBase, Client):
         du: FArr = np.zeros_like(u)
 
         for _ in range(n_iter):
-            info("Waiting for z")
+            log.debug("Waiting for z")
 
             try:
                 z = self.recv_array()

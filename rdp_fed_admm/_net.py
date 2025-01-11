@@ -2,7 +2,7 @@ import io
 import socket
 from collections.abc import Callable
 from contextlib import ContextDecorator
-from logging import info, warning
+from logging import getLogger
 from socket import SocketType
 from types import TracebackType
 from typing import cast, override
@@ -15,6 +15,8 @@ __all__ = [
     "Client",
     "Server",
 ]
+
+log = getLogger(__name__)
 
 class _NetworkBase(ContextDecorator):
     SIZLEN: int = 4
@@ -48,7 +50,7 @@ class _NetworkBase(ContextDecorator):
         if not data_size:
             return
 
-        info(" ".join((
+        log.debug(" ".join((
             f"Sending {cast(tuple[int,...], arr.shape)} array",
             f"to {conn.getpeername()}:",
             f"({data_size} bytes)",
@@ -80,7 +82,7 @@ class _NetworkBase(ContextDecorator):
 
         assert stream.seek(0) == 0
         arr: FArr = np.load(stream)
-        info(" ".join((
+        log.debug(" ".join((
             f"Received {cast(tuple[int,...], arr.shape)} array",
             f"from {conn.getpeername()}:",
             f"({data_size} bytes)",
@@ -105,7 +107,7 @@ class _NetworkBase(ContextDecorator):
                 _msg += ": " + ', '.join(exc_value.args)
                 ret = True
 
-        warning(_msg)
+        log.warning(_msg)
         self._socket.shutdown(socket.SHUT_RDWR)
         self._socket.close()
 
@@ -118,9 +120,9 @@ class Client(_NetworkBase):
         addr: str,
         port: int,
     ):
-        info(f"Registered client for {addr}:{port}")
+        log.info(f"Registered client for {addr}:{port}")
         super().__init__(addr, port, socket.create_connection)
-        info(f"Listening on %s:%d" % self._socket.getsockname())
+        log.info(f"Listening on %s:%d" % self._socket.getsockname())
 
 
 class Server(_NetworkBase):
@@ -130,7 +132,7 @@ class Server(_NetworkBase):
         port: int,
         max_clients: int = 5,
     ) -> None:
-        info(f"Registered server for {addr}:{port} (max {max_clients} clients)")
+        log.info(f"Registered server for {addr}:{port} (max {max_clients} clients)")
         super().__init__(addr, port, socket.create_server)
         self._client_conn: dict[Any, Any] = {}
         self._max_clients: int = max_clients
@@ -139,7 +141,7 @@ class Server(_NetworkBase):
         self._socket.listen(self._max_clients)
         while len(self._client_conn) < self._max_clients:
             conn, addr = self._socket.accept()
-            info(f"Accepted connection from {addr[0]}:{addr[1]}")
+            log.info(f"Accepted connection from {addr[0]}:{addr[1]}")
             self._client_conn[addr] = conn
 
     @override
@@ -152,7 +154,7 @@ class Server(_NetworkBase):
         ret = super().__exit__(exc_type, exc_value, traceback)
 
         for peer, conn in self._client_conn.items():
-            info("Closing %s:%d", *peer)
+            log.info("Closing %s:%d", *peer)
             conn.shutdown(socket.SHUT_RDWR)
             conn.close()
 
