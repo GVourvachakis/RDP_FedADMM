@@ -40,6 +40,8 @@ def rdp_fed_admm():
         log.info(f"Registering server for {args.address}:{args.port}")
         with ElasticNetADMMServer(args.address, args.port, max_clients=1) as srv:
             log.info(f"Listening on {args.address}:{args.port}")
+            preds = srv.fit(n_features, n_iter).predict(X)
+            log.warning("MAE: {:.3f}".format(np.abs(preds - Y).mean()))
     else:
         raise RuntimeError("Undefined behaviour")
 
