@@ -124,14 +124,12 @@ class ADMMServer(_ADMMBase, Server):
         step_size: float = 0.3,
         penalty_term: float = 0.6,
         subset_size: float = 0.7,
-        elastic_boost: float = 0.5,
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
         Server.__init__(self, addr, port, max_clients)
         self._subset_size: float = subset_size
         self._n_clients: int
         self._coeffs: FArr | None
-        self._boost: float = elastic_boost
 
     def _z_update(self, z: FArr) -> FArr:
         raise NotImplementedError("This is meant to be overridden")
@@ -165,7 +163,6 @@ class ADMMServer(_ADMMBase, Server):
                     raise RuntimeError
 
                 for fd in rfds:
-                    idx = conns.index(fd)
                     du += self.recv_array(fd)
                     subset.remove(fd)
 
