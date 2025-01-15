@@ -43,6 +43,7 @@ class ADMMClient(_ADMMBase, Client):
         penalty_term: float = 0.6,
         clipping_threshold: float = 0.1,
         cache_factorizations: bool = True,
+        rdp_params: tuple[float, float] = (1, 0.003),
         loss: str | None = None,
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
@@ -63,6 +64,8 @@ class ADMMClient(_ADMMBase, Client):
         if loss is not None:
             self._loss_func = get_loss(loss)
 
+        self._rdp_params: tuple[float, float] = rdp_params
+
     @property
     def training_loss(self) -> FArr:
         return np.array(self._loss)
@@ -71,6 +74,13 @@ class ADMMClient(_ADMMBase, Client):
     def _clip(v: FArr, thresh: Float) -> FArr:
         scale: Float = np.min(np.array([thresh, np.linalg.norm(v)]))
         return v * scale
+
+    def _get_noise_scale(
+        self,
+        n_data: int,
+        params: tuple[float, float]
+    ) -> float:
+        raise NotImplementedError("This is meant to be overridden")
 
     def _cache_miss(self, key: str) -> bool:
         return key not in self._cache or not self._use_cache
@@ -89,6 +99,8 @@ class ADMMClient(_ADMMBase, Client):
         u: FArr = np.zeros_like(x)
         du: FArr = np.zeros_like(u)
 
+        noise_scale = self._get_noise_scale(X.shape[0], self._rdp_params)
+
         for _ in range(self._n_iter):
             log.debug("Waiting for z")
 
@@ -98,10 +110,12 @@ class ADMMClient(_ADMMBase, Client):
                 raise
 
             x = self._x_update(X, Y, 2 * z - u, u, z)
-            # rsd = self._clip(x - z, self._clip_thresh)
+            # rsd = self._clip(x - z, self._clip_thresh)  # MAE triples w/
             rsd = x - z
-            # noise = 0.5 * self.rng.random(dim_weights)  # TODO: FIX
-            noise = 0
+            noise = 0.5 * self.rng.normal(
+                scale=noise_scale,
+                size=dim_weights,
+            )
             du = 2 * self._step * (rsd + noise)
 
             self.send_array(du)
