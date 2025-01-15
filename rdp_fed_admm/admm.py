@@ -39,6 +39,7 @@ class ADMMClient(_ADMMBase, Client):
         port: int,
         seed: int | None = None,
         step_size: float = 0.3,
+        n_iter: int = 100,
         penalty_term: float = 0.6,
         clipping_threshold: float = 0.1,
         cache_factorizations: bool = True,
@@ -46,6 +47,8 @@ class ADMMClient(_ADMMBase, Client):
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
         Client.__init__(self, addr, port)
+
+        self._n_iter: int = n_iter
 
         self._coeffs: FArr | None
         self._step: float = step_size
@@ -79,7 +82,6 @@ class ADMMClient(_ADMMBase, Client):
         self,
         X: FArr,
         Y: Vec,
-        n_iter: int = 100
     ) -> Self:
         dim_weights: int = X.shape[1]
         x: FArr = np.zeros(dim_weights)
@@ -87,7 +89,7 @@ class ADMMClient(_ADMMBase, Client):
         u: FArr = np.zeros_like(x)
         du: FArr = np.zeros_like(u)
 
-        for _ in range(n_iter):
+        for _ in range(self._n_iter):
             log.debug("Waiting for z")
 
             try:
@@ -107,7 +109,6 @@ class ADMMClient(_ADMMBase, Client):
             u += du
             self._coeffs = x
 
-            self._coeffs = x
             print(f"{Y.mean():.2e}, {(X @ x).mean():.2e}, {x.mean():.2e}, {z.mean():.2e}, {u.mean():.2e}")
             if self._loss_func is not None:
                 preds = self.predict(X)
@@ -123,12 +124,14 @@ class ADMMServer(_ADMMBase, Server):
         port: int,
         max_clients: int,
         seed: int | None = None,
+        n_iter: int = 100,
         step_size: float = 0.3,
         penalty_term: float = 0.6,
         subset_size: float = 0.7,
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
         Server.__init__(self, addr, port, max_clients)
+        self._n_iter: int = n_iter
         self._subset_size: float = subset_size
         self._n_clients: int
         self._coeffs: FArr | None
@@ -139,7 +142,6 @@ class ADMMServer(_ADMMBase, Server):
     def fit(
         self,
         n_features: int,
-        n_iter: int = 100,
     ) -> Self:
         dim_weights = n_features
         du: FArr = np.zeros(dim_weights)
@@ -151,7 +153,7 @@ class ADMMServer(_ADMMBase, Server):
         conns = list(self._client_conn.values())
 
         subs_size = max(1, int(self._n_clients * self._subset_size))
-        for i in range(n_iter):
+        for _ in range(self._n_iter):
             subset = sample(conns, subs_size)
             nsubs = len(subset)
 

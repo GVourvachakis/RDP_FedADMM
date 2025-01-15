@@ -6,7 +6,7 @@ from .lasso import LassoADMMClient, LassoADMMServer
 
 @final
 class ElasticNetADMMClient(LassoADMMClient):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
 
@@ -14,19 +14,11 @@ class ElasticNetADMMClient(LassoADMMClient):
 class ElasticNetADMMServer(LassoADMMServer):
     def __init__(
         self,
-        addr: str,
-        port: int,
-        max_clients: int,
-        seed: int | None = None,
-        step_size: float = 0.3,
+        *args: Any,
         ridge_multiplier: float = 1.,
-        penalty_term: float = 0.6,
-        subset_size: float = 0.7,
+        **kwargs: Any,
     ) -> None:
-        super().__init__(
-            addr, port, max_clients,
-            seed, step_size, penalty_term, subset_size
-        )
+        super().__init__(*args, **kwargs)
         self._ridge_mult = ridge_multiplier
 
     @override

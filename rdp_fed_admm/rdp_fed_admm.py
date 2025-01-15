@@ -33,14 +33,24 @@ def rdp_fed_admm():
 
     if args.client:
         log.info(f"Registering client for {args.address}:{args.port}")
-        with ElasticNetADMMClient(args.address, args.port, loss="mae") as cli:
-            _ = cli.fit(X, Y, n_iter)
+        with ElasticNetADMMClient(
+            args.address,
+            args.port,
+            loss="mae",
+            n_iter=n_iter,
+        ) as cli:
+            _ = cli.fit(X, Y)
             breakpoint()
     elif args.server:
         log.info(f"Registering server for {args.address}:{args.port}")
-        with ElasticNetADMMServer(args.address, args.port, max_clients=1) as srv:
+        with ElasticNetADMMServer(
+            args.address,
+            args.port,
+            max_clients=1,
+            n_iter=n_iter,
+        ) as srv:
             log.info(f"Listening on {args.address}:{args.port}")
-            preds = srv.fit(n_features, n_iter).predict(X)
+            preds = srv.fit(n_features).predict(X)
             log.warning("MAE: {:.3f}".format(np.abs(preds - Y).mean()))
     else:
         raise RuntimeError("Undefined behaviour")
