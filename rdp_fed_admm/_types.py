@@ -9,3 +9,4 @@ type NpFloat = dtype[floating[Any]]
 type Vec = ndarray[tuple[int, Literal[1]], NpFloat]
 
 type MLoss = Callable[[FArr, FArr], float]
+type MDPNoise = Callable[[float, tuple[float, float]], float]

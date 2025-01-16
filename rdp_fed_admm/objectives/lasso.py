@@ -2,6 +2,7 @@ from typing import override
 
 import numpy as np
 
+from .._rdp import get_mechanism
 from .._types import *
 from ..admm import ADMMClient, ADMMServer
 
@@ -11,12 +12,8 @@ class LassoADMMClient(ADMMClient):
         super().__init__(*args, **kwargs)
 
     @override
-    def _get_noise_scale(
-        self,
-        n_data: int,
-        params: tuple[float, float],
-    ) -> float:
-        """Noise var for Gaussian RDP ADMM x update.
+    def _x_update_sensitivity(self) -> float:
+        """Sensitivity of the ADMM x_update operator.
 
         The sensitivity of the `x_update` LSQ minimizer `f` which:
             - Is `L`-Lipschitz
@@ -32,24 +29,10 @@ class LassoADMMClient(ADMMClient):
         is then said to be (α,ε)-RDP iff the scale of the added
         noise satisfies [2]:
             σ² = α Δ²f / (2ε)²
-        Under privacy amplification from iteration and the advanced
-        composition theorems, we only add for `K` iterations `σ²/K`
-        noise in each one.
-
-        Parameters
-        ----------
-        n_data : int
-            The number of data points/examples in the client's
-            dataset.
-        params : tuple[float, float]
-            The RDP (α,ε) parameters.
 
         Notes
         -----
         - The Lipschitz constant `L` is set here to 1.
-        - Noting the advanced composition theorems associated with
-          the RDP formulations, `K` iterations each involving a
-          noise factor `N(0,σ²)` will add up to a `Kε` RDP-budget.
 
         References
         ----------
@@ -58,15 +41,48 @@ class LassoADMMClient(ADMMClient):
 
         """
         L = 1
-        sensitivity = 4 * self._step_size * L * self._penalty_term
-        sensitivity /= n_data
+        sens = 4 * self._step_size * L * self._penalty_term
+        sens /= self._n_data
 
-        alpha, epsilon = params
+        return sens
 
-        scale = alpha / (2 * epsilon)**2
-        scale *= sensitivity**2
+    @override
+    def _get_noise_scale(
+        self,
+        params: tuple[float, float],
+        sensitivity: float,
+        mechanism: str,
+    ) -> float:
+        """Noise var for Gaussian RDP ADMM x update.
 
-        return scale / self._n_iter
+        Under privacy amplification from iteration and the advanced
+        composition theorems, we only add for `K` iterations `σ²/K`
+        noise in each one.
+
+        Parameters
+        ----------
+        params : tuple[float, float]
+            The RDP (α,ε) parameters.
+        mechanism : str
+            The noise scale will be derived from this formula. The
+            exact type of formula depends on the privacy framework
+            (e.g. DP/RDP/zCDP) and the underlying distribution of
+            additive noise (e.g. Gaussian/Laplacian/RandSeq).
+
+        Notes
+        -----
+        - Noting the advanced composition theorems associated with
+          the RDP formulations, `K` iterations each involving a
+          noise factor `N(0,σ²/K)` will add up to a `ε` RDP-budget.
+
+        References
+        ----------
+        [1] Cyffers, Bellet and Basu 2023
+        [2] Ilya Mironov, 2017
+
+        """
+        mech = get_mechanism(mechanism)
+        return mech(sensitivity, params)
 
     @override
     def _x_update(self, X: FArr, Y: FArr, x: FArr, z: FArr, u: FArr) -> FArr:

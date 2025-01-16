@@ -43,13 +43,15 @@ class ADMMClient(_ADMMBase, Client):
         penalty_term: float = 0.6,
         clipping_threshold: float = 0.1,
         cache_factorizations: bool = True,
-        rdp_params: tuple[float, float] = (1, 0.003),
+        dp_params: tuple[float, float] = (1, 0.003),
+        dp_mechanism: str = "rdp_gaussian",
         loss: str | None = None,
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
         Client.__init__(self, addr, port)
 
         self._n_iter: int = n_iter
+        self._n_data: int
 
         self._coeffs: FArr | None
         self._step: float = step_size
@@ -64,7 +66,8 @@ class ADMMClient(_ADMMBase, Client):
         if loss is not None:
             self._loss_func = get_loss(loss)
 
-        self._rdp_params: tuple[float, float] = rdp_params
+        self._dp_params: tuple[float, float] = dp_params
+        self._dp_mechanism: str = dp_mechanism
 
     @property
     def training_loss(self) -> FArr:
@@ -75,10 +78,14 @@ class ADMMClient(_ADMMBase, Client):
         scale: Float = np.min(np.array([thresh, np.linalg.norm(v)]))
         return v * scale
 
+    def _x_update_sensitivity(self) -> float:
+        raise NotImplementedError("This is meant to be overridden")
+
     def _get_noise_scale(
         self,
-        n_data: int,
-        params: tuple[float, float]
+        params: tuple[float, float],
+        sensitivity: float,
+        mechanism: str,
     ) -> float:
         raise NotImplementedError("This is meant to be overridden")
 
@@ -93,13 +100,19 @@ class ADMMClient(_ADMMBase, Client):
         X: FArr,
         Y: Vec,
     ) -> Self:
+        assert X.shape[0] == len(Y)
+        self._n_data = X.shape[0]
         dim_weights: int = X.shape[1]
         x: FArr = np.zeros(dim_weights)
         z: FArr = np.zeros_like(x)
         u: FArr = np.zeros_like(x)
         du: FArr = np.zeros_like(u)
 
-        noise_scale = self._get_noise_scale(X.shape[0], self._rdp_params)
+        x_upd_noise_stdev = self._get_noise_scale(
+            self._dp_params,
+            self._x_update_sensitivity(),
+            self._dp_mechanism,
+        ) / self._n_iter
 
         for _ in range(self._n_iter):
             log.debug("Waiting for z")
@@ -113,7 +126,7 @@ class ADMMClient(_ADMMBase, Client):
             # rsd = self._clip(x - z, self._clip_thresh)  # MAE triples w/
             rsd = x - z
             noise = 0.5 * self.rng.normal(
-                scale=noise_scale,
+                scale=x_upd_noise_stdev,
                 size=dim_weights,
             )
             du = 2 * self._step * (rsd + noise)
