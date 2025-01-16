@@ -3,7 +3,8 @@ from logging import getLogger
 
 import numpy as np
 
-from rdp_fed_admm._types import FArr, MLoss
+from ._types import FArr, MLoss
+from ._utils import call_gettr
 
 log = getLogger(__name__)
 __all__ = [
@@ -28,13 +29,4 @@ _LOSSES: dict[str, MLoss] = {
 }
 
 def get_loss(name: str) -> MLoss:
-    try:
-        loss = deepcopy(_LOSSES[name])
-    except KeyError:
-        log.error(f"{name} is an invalid nonconformity measure")
-        raise ValueError(
-            f"{name} is an invalid measure, please pick one of" +
-            ", ".join(_LOSSES.keys())
-        )
-
-    return loss
+    return call_gettr(name, _LOSSES)

@@ -1,7 +1,7 @@
 from logging import getLogger
 from random import sample
 from select import select
-from typing import Self, cast, override
+from typing import Self
 
 import numpy as np
 from numpy.random import Generator
