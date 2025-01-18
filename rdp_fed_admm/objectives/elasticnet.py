@@ -1,6 +1,17 @@
-from typing import final, override
+"""Elastic Net Objective.
 
-from .._types import *
+The elastic net is a generalized scheme which linearly combines lasso
+and ridge regularization as follows:
+    R := l_1 || x ||₁ + l_2 || x ||₂²
+where l_1 and l_2 are adjustable hyperparameters.
+
+The way the optimization problem is formulated under ADMM, this only
+applies to the soft-thresholding operator during the `z`-update.
+"""
+
+from typing import Any, final, override
+
+from .._types import FArr
 from .lasso import LassoADMMClient, LassoADMMServer
 
 
@@ -27,11 +38,11 @@ class ElasticNetADMMServer(LassoADMMServer):
 
         The elastic net regularization, i.e. the function:
             f(x) := || x ||₁ + (γ/2) || x ||₂²
-        for γ > 0 (i.e. a linear combination of l1 and l2 regularization) has
-        a proximal operator:
+        for γ > 0 (i.e. a linear combination of l1 and l2
+        regularization) has a proximal operator:
             prox(v; λ, f) = prox(v; λ, l1) / (1 + λγ)
-        That is, the proximal operator for the lasso with some multiplicative
-        shrinkage.
+        That is, the proximal operator for the lasso with some
+        multiplicative shrinkage.
 
         References
         ----------

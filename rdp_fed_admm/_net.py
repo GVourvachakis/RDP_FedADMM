@@ -5,11 +5,11 @@ from contextlib import ContextDecorator
 from logging import getLogger
 from socket import SocketType
 from types import TracebackType
-from typing import cast, override
+from typing import Any, cast, override
 
 import numpy as np
 
-from ._types import *
+from ._types import FArr
 
 __all__ = [
     "Client",
@@ -122,7 +122,7 @@ class Client(_NetworkBase):
     ):
         log.info(f"Registered client for {addr}:{port}")
         super().__init__(addr, port, socket.create_connection)
-        log.info(f"Listening on %s:%d" % self._socket.getsockname())
+        log.info("Listening on %s:%d" % self._socket.getsockname())
 
 
 class Server(_NetworkBase):
@@ -132,7 +132,8 @@ class Server(_NetworkBase):
         port: int,
         max_clients: int = 5,
     ) -> None:
-        log.info(f"Registered server for {addr}:{port} (max {max_clients} clients)")
+        log.info(f"Registered server for {addr}:{port} " +
+                 f"(max {max_clients} clients)")
         super().__init__(addr, port, socket.create_server)
         self._client_conn: dict[Any, Any] = {}
         self._max_clients: int = max_clients

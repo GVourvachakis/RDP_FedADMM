@@ -1,4 +1,3 @@
-from copy import deepcopy
 from logging import getLogger
 
 import numpy as np
