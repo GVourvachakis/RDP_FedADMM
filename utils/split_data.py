@@ -24,7 +24,7 @@ class Args:
     target: int
     splits: int
     bias: float
-    randomize_splits: bool
+    randomize_sizes: bool
 
 
 parser = ArgumentParser(
@@ -186,6 +186,6 @@ if __name__ == "__main__":
 
     data = np.genfromtxt(args.dataset, delimiter=",", skip_header=1)
     hmap = niid_reg_split(data, 8, args.splits, args.bias,
-                          args.randomize_splits)
+                          args.randomize_sizes)
 
     export_splits(hmap, "./splits")
