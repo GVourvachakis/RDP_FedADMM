@@ -19,7 +19,7 @@ type F64Arr = np.ndarray[tuple[int, ...], np.dtype[np.float64]]
 
 
 @dataclass
-class Args:
+class _Args:
     dataset: str
     target: int
     splits: int
@@ -177,7 +177,7 @@ def niid_reg_split(
 
 
 if __name__ == "__main__":
-    args = Args(**vars(parser.parse_args()))
+    args = _Args(**vars(parser.parse_args()))
     rng = np.random.default_rng(42)
 
     assert 0 <= args.bias <= 1
