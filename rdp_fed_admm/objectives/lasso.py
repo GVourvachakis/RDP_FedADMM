@@ -1,9 +1,21 @@
-from typing import override
+"""Lasso Objective.
+
+Lasso regularization promotes sparsity in the objective by adding the
+l_1 norm as an extra term:
+    R := l_1 || x ||₁
+where l_1 is an adjustable hyperparameter.
+
+The way the optimization problem is formulated under ADMM, the proximal
+of this operation amounts to a soft-thresholding operator applied as the
+`z`-update.
+"""
+
+from typing import Any, override
 
 import numpy as np
 
 from .._rdp import get_mechanism
-from .._types import *
+from .._types import FArr
 from ..admm import ADMMClient, ADMMServer
 
 
@@ -63,6 +75,10 @@ class LassoADMMClient(ADMMClient):
         ----------
         params : tuple[float, float]
             The RDP (α,ε) parameters.
+        sensitivity : float
+            The l-p sensitivity of the function to which the
+            randomization mechanism will be applied. Whether `p` is 1
+            or 2 depends also depends on the mechanism.
         mechanism : str
             The noise scale will be derived from this formula. The
             exact type of formula depends on the privacy framework

@@ -74,6 +74,7 @@ def _create_dir(path: str) -> None:
 
 
 def export_splits(hmap: dict[int, F64Arr], dir: str) -> None:
+    """Export split dict to separate csv files."""
     _create_dir(dir)
     for k, v in hmap.items():
         v = np.array(v)

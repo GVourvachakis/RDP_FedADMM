@@ -1,5 +1,15 @@
+"""Foundational ADMM Classes.
+
+Contains implementations for a generic client and server containing
+pluggable methods for the `x` and `z` updates respectively. These
+modules don't work _per se_ but are intended to be overridden with
+classes which implement the aforementioned methods.
+
+This module focuses mostly on communication, messaging and aggregation
+logic.
+"""
+
 from logging import getLogger
-from math import sqrt
 from random import sample
 from select import select
 from typing import Self
@@ -8,8 +18,8 @@ import numpy as np
 from numpy.random import Generator
 
 from ._loss import get_loss
-from ._net import *
-from ._types import *
+from ._net import Client, Server
+from ._types import FArr, MLoss, Vec
 
 log = getLogger(__name__)
 
@@ -75,8 +85,8 @@ class ADMMClient(_ADMMBase, Client):
         return np.array(self._loss)
 
     @staticmethod
-    def _clip(v: FArr, thresh: Float) -> FArr:
-        scale: Float = np.min(np.array([thresh, np.linalg.norm(v)]))
+    def _clip(v: FArr, thresh: float) -> FArr:
+        scale: float = np.min(np.array([thresh, np.linalg.norm(v)]))
         return v * scale
 
     def _x_update_sensitivity(self) -> float:
@@ -133,7 +143,7 @@ class ADMMClient(_ADMMBase, Client):
                 raise
 
             x = self._x_update(X, Y, 2 * z - u, u, z)
-            # rsd = self._clip(x - z, self._clip_thresh)  # MAE triples w/
+            # rsd = self._clip(x - z, self._clip_thresh)  # MAE triples
             rsd = x - z
             noise = 0.5 * self.rng.normal(
                 scale=x_upd_noise_stdev,
