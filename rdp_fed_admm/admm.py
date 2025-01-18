@@ -1,4 +1,5 @@
 from logging import getLogger
+from math import sqrt
 from random import sample
 from select import select
 from typing import Self
@@ -114,6 +115,15 @@ class ADMMClient(_ADMMBase, Client):
             self._dp_mechanism,
         ) / self._n_iter
 
+        n_data_noise_stdev = self._get_noise_scale(
+            self._dp_params,
+            1 / self._n_data,
+            self._dp_mechanism,
+        )
+        self.send_array(np.array([
+            self._n_data + self.rng.normal(scale=n_data_noise_stdev)
+        ]))
+
         for _ in range(self._n_iter):
             log.debug("Waiting for z")
 
@@ -178,6 +188,8 @@ class ADMMServer(_ADMMBase, Server):
         self._n_clients = len(self._client_conn)
 
         conns = list(self._client_conn.values())
+        n_data_client: list[float] = [self.recv_array(fd)[0] for fd in conns]
+        n_data_client = [i / max(n_data_client) for i in n_data_client]
 
         subs_size = max(1, int(self._n_clients * self._subset_size))
         for _ in range(self._n_iter):
@@ -194,7 +206,8 @@ class ADMMServer(_ADMMBase, Server):
                     raise RuntimeError
 
                 for fd in rfds:
-                    du += self.recv_array(fd)
+                    idx = conns.index(fd)
+                    du += n_data_client[idx] * self.recv_array(fd)
                     subset.remove(fd)
 
             du /= nsubs
