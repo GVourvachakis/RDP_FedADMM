@@ -9,12 +9,23 @@ non-i.i.d-ness metric.
 
 import math
 import pathlib
+import random
 from argparse import ArgumentParser
-from collections import defaultdict
-from random import sample
+from dataclasses import dataclass
 
 import numpy as np
-from numpy.typing import ArrayLike
+
+type F64Arr = np.ndarray[tuple[int, ...], np.dtype[np.float64]]
+
+
+@dataclass
+class Args:
+    dataset: str
+    target: int
+    splits: int
+    bias: float
+    randomize_splits: bool
+
 
 parser = ArgumentParser(
     description="Split a dataset in a biased way",
@@ -48,6 +59,13 @@ _ = parser.add_argument(
     default=0.5,
 )
 
+_ = parser.add_argument(
+    "--randomize-sizes",
+    help="Randomize the sizes of each split (within reason)",
+    type=bool,
+    default=True,
+)
+
 
 def _create_dir(path: str) -> None:
     p = pathlib.Path(path)
@@ -55,42 +73,119 @@ def _create_dir(path: str) -> None:
         p.mkdir()
 
 
-if __name__ == "__main__":
-    args = parser.parse_args()
-    rng = np.random.default_rng(42)
-
-    bias = args.bias
-    assert 0 <= bias <= 1
-
-    NBINS = 10
-    NSPLITS = args.splits
-    data = np.genfromtxt(args.dataset, delimiter=",", skip_header=1)
-    assert 0 <= args.target <= data.shape[1] - 1
-    Y = data[:,args.target]
-
-    bins = np.linspace(Y.min(), Y.max(), NBINS+1)[1:]
-    inds = bins.searchsorted(Y)
-
-    type ArrayLike = np.ndarray[tuple[int, int], np.dtype[np.float64]]
-    hmap: dict[str, list[ArrayLike]] = defaultdict(list[ArrayLike])
-    for i, ind in enumerate(inds):
-        hmap[ind].append(data[i])
-    splits = defaultdict(list[np.array])
-
-    K = max((1, math.floor(bias * len(hmap))))
-    for idx_split in range(NSPLITS):
-        sub_inds = sample(inds.tolist(), K)
-
-        for ind in sub_inds:
-            samples = hmap[ind]
-            n = math.floor(len(samples) / NSPLITS / bias)
-
-            for _ in range(n):
-                sub_sample = hmap[ind].pop()
-                splits[idx_split].append(sub_sample)
-
-    _create_dir("./splits")
-    for k, v in splits.items():
+def export_splits(hmap: dict[int, F64Arr], dir: str) -> None:
+    _create_dir(dir)
+    for k, v in hmap.items():
         v = np.array(v)
         hdr = f"No {k}: mean: {v.mean()}, std: {v.std()}"
-        np.savetxt(f"./splits/{k}.csv", v, delimiter=",", header=hdr)
+        np.savetxt(f"{dir}/{k}.csv", v, delimiter=",", header=hdr)
+
+
+def _arr_rng_pop(ary: F64Arr, end: int, n_points: int) -> tuple[F64Arr, F64Arr]:
+    """Extract random subrange from array.
+
+    Parameters
+    ----------
+    ary : np.ndarray[tuple[int, ...], np.dtype[np.float[Any]]]
+        The array to sample from.
+    end : int
+        The end of the subrange such that the subrange is (0, end].
+    n_points : int
+        The number of points to sample from (0, end] ∈ ary.
+
+    Returns
+    -------
+    (view, ary) : tuple[F64Arr, F64Arr]
+        view: The sampled points from ary[0:end,:].
+        ary: The input array with the sampled points deleted.
+
+    """
+    inds = random.sample(range(end), n_points)
+    view = ary[inds]
+    ary = np.delete(ary, inds, axis=0)
+
+    return view, ary
+
+
+def niid_reg_split(
+    data: F64Arr,
+    tgt_idx: int,
+    n_split: int,
+    bias: float,
+    randomize_sizes: bool = True,
+) -> dict[int, F64Arr]:
+    """Non-IID array splitting.
+
+    Given an input dataset `data`. The algorithm:
+        1. Sorts `data` by target values _ascending_.
+        2. With `n` the number of data points and `n_split` the number
+           of required splits, the initial split size is:
+             s_split := n / n_split
+        3. Selects a random subrange of `data` [0,s] where s ~ N lies in
+           the range [s_split/2, s_split].
+        4. Pops `n_mode` randomly sampled (modal) points from data[0,s].
+        5. Pops `n_rsd` randomly sampled (residual) points from data.
+        6. Concatenates the popped points to a dict slot.
+    Items (2)-(6) are repeated `n_split` times in total.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        The input dataset containing both features and target.
+    tgt_idx : int
+        The index of the column containing the target values.
+    n_split : int
+        The number of times the dataset should be split.
+    bias : float
+        A number ∈ [0, 1] which weighs sampling from the modal or
+        residual points. A value of 0.5 samples fairly and will
+        remove bias from the splits.
+    randomize_sizes : bool
+        Whether to randomize the sizes of each split on top of
+        introducing bias to the mode. A value of `False` ensures the
+        splits be equal in size.
+
+    Returns
+    -------
+    hmap : dict[int, F64Arr]
+        A dict containing `n_split` biased subsets of `data`.
+
+    """
+    n, m = data.shape[0], data.shape[1]
+    assert tgt_idx < m
+
+    # sort data by target values
+    inds = data[:, tgt_idx].argsort()
+    data = data[inds]
+
+    hmap: dict[int, np.ndarray[tuple[int, ...], np.dtype[np.float64]]] = {}
+    for i in range(n_split):
+        rand = (1 + random.random()) / 2 if randomize_sizes else 1
+        s_split = math.floor(n / n_split * rand)
+        n_mode = math.floor(bias * s_split)
+        n_rsd = s_split - n_mode
+
+        samples: list[F64Arr] = [np.array([])] * 2
+        samples[0], data = _arr_rng_pop(data, s_split, n_mode)
+        samples[1], data = _arr_rng_pop(data, data.shape[0], n_rsd)
+
+        hmap[i] = np.concatenate(samples)
+
+        print(f"[{i}] n_data: {s_split}\tn_mode: {n_mode}\tn_rsd: {n_rsd}")
+
+    return hmap
+
+
+if __name__ == "__main__":
+    args = Args(**vars(parser.parse_args()))
+    rng = np.random.default_rng(42)
+
+    assert 0 <= args.bias <= 1
+
+    random.seed(42)
+
+    data = np.genfromtxt(args.dataset, delimiter=",", skip_header=1)
+    hmap = niid_reg_split(data, 8, args.splits, args.bias,
+                          args.randomize_splits)
+
+    export_splits(hmap, "./splits")
