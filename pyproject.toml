@@ -37,6 +37,7 @@ max-doc-length = 72
 ignore-overlong-task-comments = true
 
 [tool.ruff.lint]
+preview = true
 ignore = [
   # {upper,lower}case names
   "N803", "N806", "N812", "E741",
