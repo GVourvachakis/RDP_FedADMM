@@ -33,4 +33,6 @@ fedora_build:
     - dnf install -y hatch
     - echo "Building with $(which ruff)"
     - hatch build
-    - ls -lAh
+  artifacts:
+    paths:
+      - "./dist/*.whl"
