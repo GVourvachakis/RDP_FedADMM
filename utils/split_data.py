@@ -10,7 +10,7 @@ non-i.i.d-ness metric.
 import math
 import pathlib
 import random
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 
 import numpy as np
@@ -19,7 +19,7 @@ type F64Arr = np.ndarray[tuple[int, ...], np.dtype[np.float64]]
 
 
 @dataclass
-class _Args:
+class _Args(Namespace):
     dataset: str
     directory: str
     target: int
