@@ -22,7 +22,7 @@ fedora_build:
   stage: test
   script:
     - echo "Installing packages"
-    - dnf install -y ruff
+    - dnf install -y which ruff
     - echo "Running linting check with $(which ruff)"
     - ruff check .
 
@@ -30,8 +30,8 @@ fedora_build:
   stage: build
   script:
     - echo "Installing packages"
-    - dnf install -y hatch
-    - echo "Building with $(which ruff)"
+    - dnf install -y which hatch
+    - echo "Building with $(which hatch)"
     - hatch build
   artifacts:
     paths:
