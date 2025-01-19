@@ -21,9 +21,11 @@ type F64Arr = np.ndarray[tuple[int, ...], np.dtype[np.float64]]
 @dataclass
 class _Args:
     dataset: str
+    directory: str
     target: int
     splits: int
     bias: float
+    test_size: float
     randomize_sizes: bool
 
 
@@ -36,6 +38,13 @@ _ = parser.add_argument(
     "dataset",
     help="CSV File containing the dateset",
     type=str,
+)
+
+_ = parser.add_argument(
+    "-d", "--directory",
+    help="Where to export the split data",
+    type=str,
+    default="./splits",
 )
 
 _ = parser.add_argument(
@@ -60,6 +69,13 @@ _ = parser.add_argument(
 )
 
 _ = parser.add_argument(
+    "--test-size",
+    help="Size of the test set relative to the dataset",
+    type=float,
+    default=0.15,
+)
+
+_ = parser.add_argument(
     "--randomize-sizes",
     help="Randomize the sizes of each split (within reason)",
     type=bool,
@@ -73,13 +89,17 @@ def _create_dir(path: str) -> None:
         p.mkdir()
 
 
+def export_data(ary: F64Arr, name: str | int, dir: str) -> None:
+    """Export an array as a csv file."""
+    hdr = f"No {name}: mean: {ary.mean()}, std: {ary.std()}"
+    np.savetxt(f"{dir}/{name}.csv", ary, delimiter=",", header=hdr)
+
+
 def export_splits(hmap: dict[int, F64Arr], dir: str) -> None:
     """Export split dict to separate csv files."""
     _create_dir(dir)
     for k, v in hmap.items():
-        v = np.array(v)
-        hdr = f"No {k}: mean: {v.mean()}, std: {v.std()}"
-        np.savetxt(f"{dir}/{k}.csv", v, delimiter=",", header=hdr)
+        export_data(v, k, dir)
 
 
 def _arr_rng_pop(ary: F64Arr, end: int, n_points: int) -> tuple[F64Arr, F64Arr]:
@@ -106,6 +126,36 @@ def _arr_rng_pop(ary: F64Arr, end: int, n_points: int) -> tuple[F64Arr, F64Arr]:
     ary = np.delete(ary, inds, axis=0)
 
     return view, ary
+
+
+def train_test_split(
+    data: F64Arr,
+    test_size: float,
+) -> tuple[F64Arr, F64Arr]:
+    """Split dataset in two unequal portions.
+
+    This function will uniformly sample `test_size*n_data` points
+    from the `data` array, remove then and return two arrays:
+        - left: the sampled points.
+        - right: the original array without the sampled points.
+
+    Parameters
+    ----------
+    data : np.ndarray[tuple[int, ...], np.dtype[np.float[Any]]]
+        The array containing the dataset.
+    test_size : float between 0 and 1
+        The relative ratio of the split.
+
+    Returns
+    -------
+    left_split, right_split : tuple[F64Arr, F64Arr]
+
+    """
+    assert 0 < test_size < 1
+    n_data = data.shape[0]
+    n_test = math.floor(n_data * test_size)
+
+    return _arr_rng_pop(data, n_data, n_test)
 
 
 def niid_reg_split(
@@ -186,7 +236,9 @@ if __name__ == "__main__":
     random.seed(42)
 
     data = np.genfromtxt(args.dataset, delimiter=",", skip_header=1)
+    test_set, data = train_test_split(data, args.test_size)
     hmap = niid_reg_split(data, 8, args.splits, args.bias,
                           args.randomize_sizes)
 
-    export_splits(hmap, "./splits")
+    export_data(test_set, "test", args.directory)
+    export_splits(hmap, args.directory)
