@@ -14,6 +14,7 @@ workflow:
 
 stages:
   - test
+  - build
 
 image: fedora:latest
 
@@ -24,3 +25,14 @@ fedora_build:
     - dnf install -y ruff
     - echo "Running linting check with $(which ruff)"
     - ruff check .
+
+fedora_build:
+  stage: build
+  script:
+    - echo "Installing packages"
+    - dnf install -y hatch
+    - echo "Building with $(which ruff)"
+    - hatch build
+  artifacts:
+    paths:
+      - "./dist/*.whl"
