@@ -9,6 +9,7 @@ __all__ = [
     "call_gettr"
 ]
 
+
 def call_gettr[T](key: str, hmap: dict[str, T]) -> T:
     try:
         method = deepcopy(hmap[key])
