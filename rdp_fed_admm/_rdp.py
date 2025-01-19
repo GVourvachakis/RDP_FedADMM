@@ -1,7 +1,7 @@
 """Formulas for various DP noise mechanisms."""
 
 from ._types import MDPNoise
-from ._utils import call_gettr
+from .utils._etc import call_gettr
 
 
 def _rdp_gaussian_noise(

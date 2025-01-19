@@ -3,7 +3,7 @@ from logging import getLogger
 import numpy as np
 
 from ._types import FArr, MLoss
-from ._utils import call_gettr
+from .utils._etc import call_gettr
 
 log = getLogger(__name__)
 __all__ = [
