@@ -17,9 +17,8 @@ from typing import Self
 import numpy as np
 from numpy.random import Generator
 
-from ._loss import get_loss
 from ._net import Client, Server
-from ._types import FArr, MLoss, Vec
+from ._types import FArr, Vec
 
 log = getLogger(__name__)
 
@@ -34,7 +33,7 @@ class _ADMMBase:
         self.rng: Generator = np.random.default_rng(seed)
         self._step_size: float = step_size
         self._penalty_term: float = penalty_term
-        self._coeffs: FArr | None = None
+        self._coeffs: FArr | None
 
     def predict(self, X: FArr) -> FArr:
         if self._coeffs is None:
@@ -48,15 +47,14 @@ class ADMMClient(_ADMMBase, Client):
         self,
         addr: str,
         port: int,
+        n_iter: int,
         seed: int | None = None,
         step_size: float = 0.3,
-        n_iter: int = 100,
         penalty_term: float = 0.6,
         clipping_threshold: float = 0.1,
         cache_factorizations: bool = True,
         dp_params: tuple[float, float] = (1, 0.003),
         dp_mechanism: str = "rdp_gaussian",
-        loss: str | None = None,
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
         Client.__init__(self, addr, port)
@@ -64,7 +62,6 @@ class ADMMClient(_ADMMBase, Client):
         self._n_iter: int = n_iter
         self._n_data: int
 
-        self._coeffs: FArr | None
         self._step: float = step_size
         self._clip_thresh: float = clipping_threshold
         self._X: FArr | None = None
@@ -72,17 +69,8 @@ class ADMMClient(_ADMMBase, Client):
         self._use_cache: bool = cache_factorizations
         self._cache: dict[str, FArr] = {}
 
-        self._loss_func: MLoss | None = None
-        self._loss: list[float] = []
-        if loss is not None:
-            self._loss_func = get_loss(loss)
-
         self._dp_params: tuple[float, float] = dp_params
         self._dp_mechanism: str = dp_mechanism
-
-    @property
-    def training_loss(self) -> FArr:
-        return np.array(self._loss)
 
     @staticmethod
     def _clip(v: FArr, thresh: float) -> FArr:
@@ -152,14 +140,9 @@ class ADMMClient(_ADMMBase, Client):
             du = 2 * self._step * (rsd + noise)
 
             self.send_array(du)
-
             u += du
-            self._coeffs = x
 
-            print(f"{Y.mean():.2e}, {(X @ x).mean():.2e}, {x.mean():.2e}, {z.mean():.2e}, {u.mean():.2e}")
-            if self._loss_func is not None:
-                preds = self.predict(X)
-                self._loss.append(self._loss_func(Y, preds))
+        self._coeffs = x
 
         return self
 
@@ -170,18 +153,28 @@ class ADMMServer(_ADMMBase, Server):
         addr: str,
         port: int,
         max_clients: int,
+        n_iter: int,
         seed: int | None = None,
-        n_iter: int = 100,
         step_size: float = 0.3,
         penalty_term: float = 0.6,
         subset_size: float = 0.7,
+        coeff_history: bool = True
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
         Server.__init__(self, addr, port, max_clients)
         self._n_iter: int = n_iter
         self._subset_size: float = subset_size
         self._n_clients: int
-        self._coeffs: FArr | None
+
+        self._keep_coeff_hist: bool = coeff_history
+        self._coeff_hist: FArr | None
+        self._coeff_hist = None
+
+    @property
+    def coeff_hist(self) -> FArr:
+        if self._coeff_hist is None:
+            raise RuntimeError("History has been disabled")
+        return self._coeff_hist
 
     def _z_update(self, z: FArr) -> FArr:
         raise NotImplementedError("This is meant to be overridden")
@@ -197,12 +190,17 @@ class ADMMServer(_ADMMBase, Server):
         self.activate_server()
         self._n_clients = len(self._client_conn)
 
+        if self._keep_coeff_hist:
+            self._coeff_hist = np.zeros((
+                self._n_clients + 1, self._n_iter, n_features
+            ))
+
         conns = list(self._client_conn.values())
         n_data_client: list[float] = [self.recv_array(fd)[0] for fd in conns]
         n_data_client = [i / max(n_data_client) for i in n_data_client]
 
         subs_size = max(1, int(self._n_clients * self._subset_size))
-        for _ in range(self._n_iter):
+        for iter in range(self._n_iter):
             subset = sample(conns, subs_size)
             nsubs = len(subset)
 
@@ -217,11 +215,19 @@ class ADMMServer(_ADMMBase, Server):
 
                 for fd in rfds:
                     idx = conns.index(fd)
-                    du += n_data_client[idx] * self.recv_array(fd)
+                    u = self.recv_array(fd)
+
+                    if self._coeff_hist is not None:
+                        self._coeff_hist[idx + 1, iter, :] = u
+
+                    du += n_data_client[idx] * u
                     subset.remove(fd)
 
             du /= nsubs
             z = self._z_update(du)
+
+            if self._coeff_hist is not None:
+                self._coeff_hist[0, iter, :] = z
 
         self._coeffs = z
 
