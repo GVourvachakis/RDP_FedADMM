@@ -32,6 +32,7 @@ class Args(Namespace):
     verbose: bool
     log_file: str
     hist_file: FileIO | None
+    coeffs_full: bool
     coeff_file: FileIO | None
     func: Callable[..., None]
 
@@ -58,7 +59,7 @@ def run_server(args: Args, log: Logger):
         args.port,
         max_clients=2,
         n_iter=args.n_iter,
-        coeffs_full=args.coeff_file is not None,
+        coeffs_full=args.coeffs_full,
         coeff_history=args.hist_file is not None,
     ) as srv:
         log.info(f"Listening on {args.address}:{args.port}")
@@ -66,7 +67,8 @@ def run_server(args: Args, log: Logger):
 
         if args.coeff_file is not None:
             fname = cast(str, args.coeff_file.name)
-            log.info(f"Saving full coeffs to {fname}")
+            arity = "full" if args.coeffs_full else "server"
+            log.info(f"Saving {arity} coeffs to {fname}")
             ary = srv.coeffs
             hdr = f"Coeffs: {ary.shape} m: {ary.mean():.3f}, s: {ary.std():.3f}"
             np.savetxt(args.coeff_file, ary, delimiter=",", header=hdr)
@@ -145,6 +147,13 @@ _ = parser_srv.add_argument(
     help="number of features in the dataset",
     type=int,
     default=None,
+)
+_ = parser_srv.add_argument(
+    "--coeffs-full",
+    help="Return the coefficients of the connected" +
+        "clients as well as the server's.",
+    type=bool,
+    default=False
 )
 _ = parser_srv.add_argument(
     "--coeff-file",
