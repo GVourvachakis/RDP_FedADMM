@@ -158,7 +158,8 @@ class ADMMServer(_ADMMBase, Server):
         step_size: float = 0.3,
         penalty_term: float = 0.6,
         subset_size: float = 0.7,
-        coeff_history: bool = True
+        coeffs_full: bool = False,
+        coeff_history: bool = False,
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
         Server.__init__(self, addr, port, max_clients)
@@ -166,13 +167,22 @@ class ADMMServer(_ADMMBase, Server):
         self._subset_size: float = subset_size
         self._n_clients: int
 
+        self._keep_coeffs_full: bool = coeffs_full
+        self._coeffs_full: FArr
         self._keep_coeff_hist: bool = coeff_history
-        self._coeff_hist: FArr | None
-        self._coeff_hist = None
+        self._coeff_hist: FArr
+
+    @property
+    def coeffs(self) -> FArr:
+        if self._keep_coeffs_full:
+            return self._coeffs_full
+        if self._coeffs is None:
+            raise RuntimeError("Not fitted")
+        return self._coeffs
 
     @property
     def coeff_hist(self) -> FArr:
-        if self._coeff_hist is None:
+        if not self._keep_coeff_hist:
             raise RuntimeError("History has been disabled")
         return self._coeff_hist
 
@@ -190,6 +200,10 @@ class ADMMServer(_ADMMBase, Server):
         self.activate_server()
         self._n_clients = len(self._client_conn)
 
+        if self._keep_coeffs_full:
+            self._coeffs_full = np.zeros((
+                self._n_clients + 1, n_features
+            ))
         if self._keep_coeff_hist:
             self._coeff_hist = np.zeros((
                 self._n_clients + 1, self._n_iter, n_features
@@ -217,7 +231,9 @@ class ADMMServer(_ADMMBase, Server):
                     idx = conns.index(fd)
                     u = self.recv_array(fd)
 
-                    if self._coeff_hist is not None:
+                    if self._keep_coeffs_full:
+                        self._coeffs_full[idx + 1, :] = z
+                    if self._keep_coeff_hist:
                         self._coeff_hist[idx + 1, iter, :] = u
 
                     du += n_data_client[idx] * u
@@ -226,7 +242,9 @@ class ADMMServer(_ADMMBase, Server):
             du /= nsubs
             z = self._z_update(du)
 
-            if self._coeff_hist is not None:
+            if self._keep_coeffs_full:
+                self._coeffs_full[0, :] = z
+            if self._keep_coeff_hist:
                 self._coeff_hist[0, iter, :] = z
 
         self._coeffs = z

@@ -31,7 +31,8 @@ class Args(Namespace):
     n_feat: int
     verbose: bool
     log_file: str
-    out_file: FileIO | None
+    hist_file: FileIO | None
+    coeff_file: FileIO | None
     func: Callable[..., None]
 
 
@@ -57,14 +58,23 @@ def run_server(args: Args, log: Logger):
         args.port,
         max_clients=2,
         n_iter=args.n_iter,
-        coeff_history=args.out_file is not None,
+        coeffs_full=args.coeff_file is not None,
+        coeff_history=args.hist_file is not None,
     ) as srv:
         log.info(f"Listening on {args.address}:{args.port}")
         _ = srv.fit(args.n_feat)
-        if args.out_file is not None:
-            fname = cast(str, args.out_file.name)
-            log.info(f"Saving results to {fname}")
-            np.save(args.out_file, srv.coeff_hist)
+
+        if args.coeff_file is not None:
+            fname = cast(str, args.coeff_file.name)
+            log.info(f"Saving full coeffs to {fname}")
+            ary = srv.coeffs
+            hdr = f"Coeffs: {ary.shape} m: {ary.mean():.3f}, s: {ary.std():.3f}"
+            np.savetxt(args.coeff_file, ary, delimiter=",", header=hdr)
+
+        if args.hist_file is not None:
+            fname = cast(str, args.hist_file.name)
+            log.info(f"Saving coeff history to {fname}")
+            np.save(args.hist_file, srv.coeff_hist)
 
 
 parser = ArgumentParser(
@@ -137,8 +147,14 @@ _ = parser_srv.add_argument(
     default=None,
 )
 _ = parser_srv.add_argument(
-    "-o", "--out-file",
-    help="result output file",
+    "--coeff-file",
+    help="coeff for server and clients (default: disabled)",
+    type=FileType("wb", 0),
+    default=None,
+)
+_ = parser_srv.add_argument(
+    "--hist-file",
+    help="coeff history file (default: disabled)",
     type=FileType("wb", 0),
     default=None,
 )
