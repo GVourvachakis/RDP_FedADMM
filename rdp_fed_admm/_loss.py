@@ -10,6 +10,7 @@ __all__ = [
     "get_loss"
 ]
 
+
 def _l_mae(X: FArr, Y: FArr) -> float:
     """Mean Absolute Error (L1-norm) loss."""
     assert X.shape == Y.shape
@@ -26,6 +27,7 @@ _LOSSES: dict[str, MLoss] = {
     "mae": _l_mae,
     "mse": _l_mse,
 }
+
 
 def get_loss(name: str) -> MLoss:
     return call_gettr(name, _LOSSES)

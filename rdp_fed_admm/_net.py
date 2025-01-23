@@ -18,6 +18,7 @@ __all__ = [
 
 log = getLogger(__name__)
 
+
 class _NetworkBase(ContextDecorator):
     SIZLEN: int = 4
     RDSTEP: int = 4096
@@ -30,7 +31,6 @@ class _NetworkBase(ContextDecorator):
     ) -> None:
         super().__init__()
         self._socket: SocketType = sock((addr, port))
-
 
     def __enter__(self):
         return self
@@ -51,7 +51,7 @@ class _NetworkBase(ContextDecorator):
             return
 
         log.debug(" ".join((
-            f"Sending {cast(tuple[int,...], arr.shape)} array",
+            f"Sending {arr.shape} array",
             f"to {conn.getpeername()}:",
             f"({data_size} bytes)",
         )))
@@ -83,7 +83,7 @@ class _NetworkBase(ContextDecorator):
         assert stream.seek(0) == 0
         arr: FArr = np.load(stream)
         log.debug(" ".join((
-            f"Received {cast(tuple[int,...], arr.shape)} array",
+            f"Received {arr.shape} array",
             f"from {conn.getpeername()}:",
             f"({data_size} bytes)",
         )))
@@ -122,7 +122,8 @@ class Client(_NetworkBase):
     ):
         log.info(f"Registered client for {addr}:{port}")
         super().__init__(addr, port, socket.create_connection)
-        log.info("Listening on %s:%d" % self._socket.getsockname())
+        sname: tuple[str, int] = self._socket.getsockname()
+        log.info("Listening on %s:%d" % sname)
 
 
 class Server(_NetworkBase):

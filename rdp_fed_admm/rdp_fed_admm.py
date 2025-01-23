@@ -13,7 +13,7 @@ def rdp_fed_admm():
                         level=logging.INFO if args.verbose else logging.WARNING,
                         filename=cast(str | None, args.log_file))
 
-    args.func(args,  log)
+    args.func(args, log)
 
 
 if __name__ == "__main__":
