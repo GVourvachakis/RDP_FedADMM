@@ -26,6 +26,7 @@
 
       nativeCheckInputs = with pkgs; [
         ruff
+        basedpyright
       ];
 
       checkPhase = ''

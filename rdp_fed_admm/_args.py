@@ -24,6 +24,7 @@ __all__ = [
 class Args(Namespace):
     address: str
     port: int
+    verbose: bool
     n_iter: int
     dataset: BufferedReader
     tgt_idx: int
@@ -31,6 +32,7 @@ class Args(Namespace):
     n_feat: int
     epsilon: float
     verbose: bool
+    n_client: int
     log_file: str
     hist_file: FileIO | None
     coeffs_full: bool
@@ -59,7 +61,7 @@ def run_server(args: Args, log: Logger):
     with ElasticNetADMMServer(
         args.address,
         args.port,
-        max_clients=2,
+        max_clients=args.n_client,
         n_iter=args.n_iter,
         coeffs_full=args.coeffs_full,
         coeff_history=args.hist_file is not None,
@@ -151,17 +153,22 @@ _ = parser_cli.add_argument(
 parser_srv = subparsers.add_parser("server", help="ADMM Server")
 parser_srv.set_defaults(func=run_server)
 _ = parser_srv.add_argument(
+    "-c", "--n-client",
+    help="number of client connections to expect",
+    type=int,
+    required=True,
+)
+_ = parser_srv.add_argument(
     "-f", "--n-feat",
     help="number of features in the dataset",
     type=int,
-    default=None,
+    required=True,
 )
 _ = parser_srv.add_argument(
     "--coeffs-full",
-    help="Return the coefficients of the connected" +
+    help="Return the coefficients of the connected " +
         "clients as well as the server's.",
-    type=bool,
-    default=False
+    action="store_true",
 )
 _ = parser_srv.add_argument(
     "--coeff-file",
