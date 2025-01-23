@@ -23,6 +23,12 @@ from ._types import FArr
 log = getLogger(__name__)
 
 
+__all__ = [
+    "ADMMServer",
+    "ADMMClient",
+]
+
+
 class _ADMMBase:
     def __init__(  # pyright: ignore[reportMissingSuperCall]
         self,
