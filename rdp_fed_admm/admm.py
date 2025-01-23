@@ -24,7 +24,7 @@ log = getLogger(__name__)
 
 
 class _ADMMBase:
-    def __init__(
+    def __init__(  # pyright: ignore[reportMissingSuperCall]
         self,
         seed: int | None = None,
         step_size: float = 0.3,
