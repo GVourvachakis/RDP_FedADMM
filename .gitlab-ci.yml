@@ -35,8 +35,9 @@ test_types:
     - echo "Generating venv"
     - python -m venv venv
     - source venv/bin/activate
-    - pip install basedpyright
-    - basedpyright --gitlabcodequality ci-report.json
+    - pip install basedpyright .
+    - ls -lAh
+    - basedpyright --gitlabcodequality ci-report.json -p ./pyproject.toml
   artifacts:
     reports:
       codequality: ci-report.json
