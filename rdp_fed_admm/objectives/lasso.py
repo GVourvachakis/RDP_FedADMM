@@ -14,9 +14,9 @@ from typing import Any, override
 
 import numpy as np
 
+from .._admm import ADMMClient, ADMMServer
 from .._rdp import get_mechanism
 from .._types import FArr
-from ..admm import ADMMClient, ADMMServer
 
 
 class LassoADMMClient(ADMMClient):
