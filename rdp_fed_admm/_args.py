@@ -50,7 +50,7 @@ def run_client(args: Args, log: Logger):
         args.address,
         args.port,
         n_iter=args.n_iter,
-        rdp_params=(1, args.epsilon),
+        dp_params=(1, args.epsilon),
     ) as cli:
         _ = cli.fit(X, Y)
 
