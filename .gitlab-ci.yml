@@ -38,7 +38,7 @@ test_types:
     - pip install basedpyright .
     - ls -lAh
     - 'basedpyright --gitlabcodequality ci-report.json -p ./pyproject.toml
-      rdp-fed-admm'
+      rdp_fed_admm'
   artifacts:
     reports:
       codequality: ci-report.json
