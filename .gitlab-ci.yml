@@ -37,7 +37,8 @@ test_types:
     - source venv/bin/activate
     - pip install basedpyright .
     - ls -lAh
-    - basedpyright --gitlabcodequality ci-report.json -p ./pyproject.toml
+    - 'basedpyright --gitlabcodequality ci-report.json -p ./pyproject.toml
+      rdp-fed-admm'
   artifacts:
     reports:
       codequality: ci-report.json

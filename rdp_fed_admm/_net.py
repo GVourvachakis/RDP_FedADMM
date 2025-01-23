@@ -5,7 +5,7 @@ from contextlib import ContextDecorator
 from logging import getLogger
 from socket import SocketType
 from types import TracebackType
-from typing import Any, cast, override
+from typing import Any, override
 
 import numpy as np
 
