@@ -8,10 +8,10 @@ non-i.i.d-ness metric.
 """
 
 import math
-import pathlib
 import random
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
@@ -84,7 +84,7 @@ _ = parser.add_argument(
 
 
 def _create_dir(path: str) -> None:
-    p = pathlib.Path(path)
+    p = Path(path)
     if not p.exists():
         p.mkdir()
 
