@@ -40,10 +40,10 @@ class Args(Namespace):
     func: Callable[..., None]
 
 
-def is_positive(val: str):
-    ival: int = int(val)
-    if ival > 0:
-        return ival
+def is_positive_float(val: str):
+    fval: float = float(val)
+    if fval > 0:
+        return fval
     raise ArgumentTypeError(f"{val} isn't strictly positive")
 
 
@@ -153,7 +153,7 @@ _ = parser_cli.add_argument(
 _ = parser_cli.add_argument(
     "-e", "--epsilon",
     help="differential privacy budget epsilon (float)",
-    type=is_positive,
+    type=is_positive_float,
     default=0.003,
 )
 
