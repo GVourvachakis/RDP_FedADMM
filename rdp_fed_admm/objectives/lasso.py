@@ -18,10 +18,15 @@ from .._admm import ADMMClient, ADMMServer
 from .._rdp import get_mechanism
 from .._types import FArr
 
+__all__ = [
+    "LassoADMMClient",
+    "LassoADMMServer",
+]
+
 
 class LassoADMMClient(ADMMClient):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # pyright: ignore[reportAny]
+        super().__init__(*args, **kwargs)  # pyright: ignore[reportAny]
 
     @override
     def _x_update_sensitivity(self) -> float:
@@ -106,7 +111,9 @@ class LassoADMMClient(ADMMClient):
 
         if self._cache_miss("lhs"):
             XtX: FArr = X.T @ X
-            lhs = np.linalg.inv(XtX + rho * np.eye(*XtX.shape))
+            nxn: tuple[int, ...] = XtX.shape
+            I = np.eye(N=nxn[0], M=nxn[1])
+            lhs = np.linalg.inv(XtX + rho * I)
             self._cache["lhs"] = lhs
 
         if self._cache_miss("XtY"):
@@ -116,8 +123,8 @@ class LassoADMMClient(ADMMClient):
 
 
 class LassoADMMServer(ADMMServer):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # pyright: ignore[reportAny]
+        super().__init__(*args, **kwargs)  # pyright: ignore[reportAny]
 
     @staticmethod
     def soft_threshold(X: FArr, thresh: float) -> FArr:

@@ -237,6 +237,7 @@ if __name__ == "__main__":
 
     data = np.genfromtxt(args.dataset, delimiter=",", skip_header=1)
     test_set, data = train_test_split(data, args.test_size)
+    hmap: dict[int, F64Arr]
     hmap = niid_reg_split(data, 8, args.splits, args.bias,
                           args.randomize_sizes)
 
