@@ -31,7 +31,6 @@ class Args(Namespace):
     client_id: int
     n_feat: int
     epsilon: float
-    verbose: bool
     n_client: int
     log_file: str
     hist_file: FileIO | None
