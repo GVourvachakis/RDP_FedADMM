@@ -90,7 +90,7 @@ def _create_dir(path: str) -> None:
 
 
 def export_data(ary: F64Arr, name: str | int, dir: str) -> None:
-    """Export an array as a csv file."""
+    """Export a 1d or 2d array as a csv file."""
     hdr = f"No {name}: mean: {ary.mean()}, std: {ary.std()}"
     np.savetxt(f"{dir}/{name}.csv", ary, delimiter=",", header=hdr)
 
