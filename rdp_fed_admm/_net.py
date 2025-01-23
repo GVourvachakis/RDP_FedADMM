@@ -3,13 +3,12 @@ import socket
 from collections.abc import Callable
 from contextlib import ContextDecorator
 from logging import getLogger
-from socket import SocketType
 from types import TracebackType
 from typing import Any, override
 
 import numpy as np
 
-from ._types import FArr
+from ._types import FArr, NetTuple
 
 __all__ = [
     "Client",
@@ -27,15 +26,15 @@ class _NetworkBase(ContextDecorator):
         self,
         addr: str,
         port: int,
-        sock: Callable[[Any], SocketType],
+        sock: Callable[[Any], socket.socket],
     ) -> None:
         super().__init__()
-        self._socket: SocketType = sock((addr, port))
+        self._socket: socket.socket = sock((addr, port))
 
     def __enter__(self):
         return self
 
-    def send_array(self, arr: FArr, conn: SocketType | None = None) -> None:
+    def send_array(self, arr: FArr, conn: socket.socket | None = None) -> None:
         conn = self._socket if not conn else conn
         stream: io.BytesIO = io.BytesIO()
         data: bytes = b""
@@ -60,7 +59,7 @@ class _NetworkBase(ContextDecorator):
         stream.flush()
         stream.close()
 
-    def recv_array(self, conn: SocketType | None = None) -> FArr:
+    def recv_array(self, conn: socket.socket | None = None) -> FArr:
         conn = self._socket if not conn else conn
         stream: io.BytesIO = io.BytesIO()
         data_size: int = 0
@@ -136,12 +135,13 @@ class Server(_NetworkBase):
         log.info(f"Registered server for {addr}:{port} " +
                  f"(max {max_clients} clients)")
         super().__init__(addr, port, socket.create_server)
-        self._client_conn: dict[Any, Any] = {}
+        self._client_conn: dict[NetTuple, socket.socket] = {}
         self._max_clients: int = max_clients
 
     def activate_server(self):
         self._socket.listen(self._max_clients)
         while len(self._client_conn) < self._max_clients:
+            addr: NetTuple
             conn, addr = self._socket.accept()
             log.info(f"Accepted connection from {addr[0]}:{addr[1]}")
             self._client_conn[addr] = conn
@@ -156,6 +156,7 @@ class Server(_NetworkBase):
         ret = super().__exit__(exc_type, exc_value, traceback)
 
         for peer, conn in self._client_conn.items():
+            breakpoint()
             log.info("Closing %s:%d", *peer)
             conn.shutdown(socket.SHUT_RDWR)
             conn.close()

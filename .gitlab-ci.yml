@@ -28,7 +28,7 @@ test_list:
 
 test_types:
   stage: test
-  allow_failure: true
+  allow_failure: false
   script:
     - echo "Installing packages"
     - dnf install -y python3-pip

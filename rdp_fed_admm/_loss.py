@@ -14,13 +14,15 @@ __all__ = [
 def _l_mae(X: FArr, Y: FArr) -> float:
     """Mean Absolute Error (L1-norm) loss."""
     assert X.shape == Y.shape
-    return np.abs(X - Y).mean()
+    abs: float = np.abs(X - Y).mean()
+    return abs
 
 
 def _l_mse(X: FArr, Y: FArr) -> float:
     """Mean Squared Error (L2-norm) loss."""
     assert X.shape == Y.shape
-    return (X @ Y) / X.shape[0]
+    mse: float = ((X - Y)**2).mean()
+    return mse
 
 
 _LOSSES: dict[str, MLoss] = {

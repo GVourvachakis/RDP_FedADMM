@@ -31,6 +31,8 @@
 
       checkPhase = ''
         ruff check --preview
+        # basedpyright --ignoreexternal --verifytypes rdp_fed_admm
+        basedpyright
       '';
 
       meta = with pkgs.lib; {

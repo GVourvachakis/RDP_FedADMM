@@ -14,10 +14,15 @@ from typing import Any, final, override
 from .._types import FArr
 from .lasso import LassoADMMClient, LassoADMMServer
 
+__all__ = [
+    "ElasticNetADMMClient",
+    "ElasticNetADMMServer",
+]
+
 
 @final
 class ElasticNetADMMClient(LassoADMMClient):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # pyright: ignore[reportAny]
         super().__init__(*args, **kwargs)
 
 
@@ -25,9 +30,9 @@ class ElasticNetADMMClient(LassoADMMClient):
 class ElasticNetADMMServer(LassoADMMServer):
     def __init__(
         self,
-        *args: Any,
+        *args: Any,  # pyright: ignore[reportAny]
         ridge_multiplier: float = 1.,
-        **kwargs: Any,
+        **kwargs: Any,  # pyright: ignore[reportAny]
     ) -> None:
         super().__init__(*args, **kwargs)
         self._ridge_mult = ridge_multiplier

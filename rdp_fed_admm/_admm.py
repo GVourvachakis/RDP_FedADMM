@@ -12,6 +12,7 @@ logic.
 from logging import getLogger
 from random import sample
 from select import select
+from socket import socket
 from typing import Self
 
 import numpy as np
@@ -21,6 +22,12 @@ from ._net import Client, Server
 from ._types import FArr
 
 log = getLogger(__name__)
+
+
+__all__ = [
+    "ADMMServer",
+    "ADMMClient",
+]
 
 
 class _ADMMBase:
@@ -68,6 +75,7 @@ class ADMMClient(_ADMMBase, Client):
         self._Y: FArr | None = None
         self._use_cache: bool = cache_factorizations
         self._cache: dict[str, FArr] = {}
+        self._coeffs: FArr | None
 
         assert all(i != 0 for i in dp_params)
         self._dp_params: tuple[float, float] = dp_params
@@ -83,16 +91,18 @@ class ADMMClient(_ADMMBase, Client):
 
     def _get_noise_scale(
         self,
-        params: tuple[float, float],
-        sensitivity: float,
-        mechanism: str,
+        _params: tuple[float, float],
+        _sensitivity: float,
+        _mechanism: str,
     ) -> float:
         raise NotImplementedError("This is meant to be overridden")
 
     def _cache_miss(self, key: str) -> bool:
         return key not in self._cache or not self._use_cache
 
-    def _x_update(self, X: FArr, Y: FArr, x: FArr, z: FArr, u: FArr) -> FArr:
+    def _x_update(
+        self, _X: FArr, _Y: FArr, _x: FArr, _z: FArr, _u: FArr
+    ) -> FArr:
         raise NotImplementedError("This is meant to be overridden")
 
     def fit(
@@ -168,6 +178,7 @@ class ADMMServer(_ADMMBase, Server):
         self._subset_size: float = subset_size
         self._n_clients: int
 
+        self._coeffs: FArr | None
         self._keep_coeffs_full: bool = coeffs_full
         self._coeffs_full: FArr
         self._keep_coeff_hist: bool = coeff_history
@@ -187,7 +198,7 @@ class ADMMServer(_ADMMBase, Server):
             raise RuntimeError("History has been disabled")
         return self._coeff_hist
 
-    def _z_update(self, z: FArr) -> FArr:
+    def _z_update(self, _z: FArr) -> FArr:
         raise NotImplementedError("This is meant to be overridden")
 
     def fit(
@@ -215,6 +226,8 @@ class ADMMServer(_ADMMBase, Server):
         n_data_client = [i / max(n_data_client) for i in n_data_client]
 
         subs_size = max(1, int(self._n_clients * self._subset_size))
+
+        rfds: list[socket]
         for iter in range(self._n_iter):
             subset = sample(conns, subs_size)
             nsubs = len(subset)
