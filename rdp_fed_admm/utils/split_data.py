@@ -98,7 +98,6 @@ def export_data(ary: F64Arr, name: str | int, dir: str) -> None:
 
 def export_splits(hmap: dict[int, F64Arr], dir: str) -> None:
     """Export split dict to separate csv files."""
-    _create_dir(dir)
     for k, v in hmap.items():
         export_data(v, k, dir)
 
@@ -241,5 +240,6 @@ if __name__ == "__main__":
     hmap = niid_reg_split(data, 8, args.splits, args.bias,
                           args.randomize_sizes)
 
+    _create_dir(args.directory)
     export_data(test_set, "test", args.directory)
     export_splits(hmap, args.directory)
