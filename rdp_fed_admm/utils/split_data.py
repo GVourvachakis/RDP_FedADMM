@@ -12,6 +12,7 @@ import random
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 
@@ -228,7 +229,7 @@ def niid_reg_split(
 
 
 if __name__ == "__main__":
-    args = _Args(**vars(parser.parse_args()))
+    args = cast(_Args, parser.parse_args())
     rng = np.random.default_rng(42)
 
     assert 0 <= args.bias <= 1
