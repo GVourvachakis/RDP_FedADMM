@@ -1,0 +1,9 @@
+from logging import Logger
+
+from ._types import MLoss
+
+log: Logger = ...
+__all__ = ["get_loss"]
+_LOSSES: dict[str, MLoss] = ...
+
+def get_loss(name: str) -> MLoss: ...
