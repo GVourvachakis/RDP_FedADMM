@@ -29,6 +29,7 @@ class Args(Namespace):
     tgt_idx: int
     client_id: int
     n_feat: int
+    epsilon: float
     verbose: bool
     log_file: str
     hist_file: FileIO | None
@@ -48,6 +49,7 @@ def run_client(args: Args, log: Logger):
         args.address,
         args.port,
         n_iter=args.n_iter,
+        rdp_params=(1, args.epsilon),
     ) as cli:
         _ = cli.fit(X, Y)
 
@@ -138,6 +140,12 @@ _ = parser_cli.add_argument(
     help="a number which separates one client from another",
     type=int,
     required=True,
+)
+_ = parser_cli.add_argument(
+    "-e", "--epsilon",
+    help="differential privacy budget epsilon (float)",
+    type=float,
+    default=0.003,
 )
 
 parser_srv = subparsers.add_parser("server", help="ADMM Server")
