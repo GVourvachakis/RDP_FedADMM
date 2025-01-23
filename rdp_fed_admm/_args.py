@@ -1,5 +1,6 @@
 from argparse import (
     ArgumentParser,
+    ArgumentTypeError,
     FileType,
     Namespace,
     RawDescriptionHelpFormatter,
@@ -37,6 +38,13 @@ class Args(Namespace):
     coeffs_full: bool
     coeff_file: FileIO | None
     func: Callable[..., None]
+
+
+def is_positive(val: str):
+    ival: int = int(val)
+    if ival > 0:
+        return ival
+    raise ArgumentTypeError(f"{val} isn't strictly positive")
 
 
 def run_client(args: Args, log: Logger):
@@ -145,7 +153,7 @@ _ = parser_cli.add_argument(
 _ = parser_cli.add_argument(
     "-e", "--epsilon",
     help="differential privacy budget epsilon (float)",
-    type=float,
+    type=is_positive,
     default=0.003,
 )
 

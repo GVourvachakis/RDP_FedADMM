@@ -69,6 +69,7 @@ class ADMMClient(_ADMMBase, Client):
         self._use_cache: bool = cache_factorizations
         self._cache: dict[str, FArr] = {}
 
+        assert all(i != 0 for i in dp_params)
         self._dp_params: tuple[float, float] = dp_params
         self._dp_mechanism: str = dp_mechanism
 
