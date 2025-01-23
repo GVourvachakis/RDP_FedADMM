@@ -18,7 +18,7 @@ import numpy as np
 from numpy.random import Generator
 
 from ._net import Client, Server
-from ._types import FArr, Vec
+from ._types import FArr
 
 log = getLogger(__name__)
 
@@ -91,13 +91,13 @@ class ADMMClient(_ADMMBase, Client):
     def _cache_miss(self, key: str) -> bool:
         return key not in self._cache or not self._use_cache
 
-    def _x_update(self, X: FArr, Y: Vec, x: FArr, z: FArr, u: FArr) -> FArr:
+    def _x_update(self, X: FArr, Y: FArr, x: FArr, z: FArr, u: FArr) -> FArr:
         raise NotImplementedError("This is meant to be overridden")
 
     def fit(
         self,
         X: FArr,
-        Y: Vec,
+        Y: FArr,
     ) -> Self:
         assert X.shape[0] == len(Y)
         self._n_data = X.shape[0]

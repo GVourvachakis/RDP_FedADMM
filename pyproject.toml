@@ -45,6 +45,6 @@ ignore = [
   # missing docstrings
   "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
 ]
-extend-select = [
-  "I", "W",
+select = [
+   'E', 'W', 'D', 'I', 'N', 'C4', 'EXE',
 ]

@@ -18,13 +18,27 @@ stages:
 
 image: fedora:latest
 
-fedora_test:
+test_list:
   stage: test
   script:
     - echo "Installing packages"
     - dnf install -y which ruff
     - echo "Running linting check with $(which ruff)"
     - ruff check .
+
+test_types:
+  stage: test
+  script:
+    - echo "Installing packages"
+    - dnf install -y python3-pip
+    - echo "Generating venv"
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install basedpyright
+    - basedpyright --gitlabcodequality ci-report.json
+  artifacts:
+    reports:
+      codequality: ci-report.json
 
 fedora_build:
   stage: build

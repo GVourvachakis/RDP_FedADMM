@@ -13,6 +13,7 @@
       pname = "rdp-fed-admm";
       version = "0.0.1";
       pyproject = true;
+      doCheck = true;
       src = self;
 
       build-system = with pypkgs; [
@@ -22,6 +23,14 @@
       dependencies = with pypkgs; [
         numpy
       ];
+
+      nativeCheckInputs = with pkgs; [
+        ruff
+      ];
+
+      checkPhase = ''
+        ruff check --preview
+      '';
 
       meta = with pkgs.lib; {
         description = "Rényi Differentially Private Federated ADMM";
