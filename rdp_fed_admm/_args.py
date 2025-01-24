@@ -60,7 +60,7 @@ def run_client(args: Args, log: Logger):
         n_iter=args.n_iter,
         dp_params=(1, args.epsilon),
     ) as cli:
-        _ = cli.fit(X, Y)
+        cli.fit(X, Y)
 
 
 def run_server(args: Args, log: Logger):
@@ -75,7 +75,7 @@ def run_server(args: Args, log: Logger):
         coeff_history=args.hist_file is not None,
     ) as srv:
         log.info(f"Listening on {args.address}:{args.port}")
-        _ = srv.fit(args.n_feat)
+        srv.fit(args.n_feat)
 
         if args.coeff_file is not None:
             fname = cast(str, args.coeff_file.name)
@@ -97,20 +97,20 @@ parser = ArgumentParser(
     formatter_class=RawDescriptionHelpFormatter,
 )
 
-_ = parser.add_argument(
+parser.add_argument(
     "-v", "--verbose",
     help="increase verbosity",
     action="store_true",
 )
 
-_ = parser.add_argument(
+parser.add_argument(
     "-l", "--log-file",
     help="log file",
     type=str,
     default=None,
 )
 
-_ = parser.add_argument(
+parser.add_argument(
     "-n", "--n-iter",
     help="number of optimization rounds before stopping",
     type=int,
@@ -118,13 +118,13 @@ _ = parser.add_argument(
 )
 
 _connection = parser.add_argument_group(description="connection")
-_ = _connection.add_argument(
+_connection.add_argument(
     "-a", "--address",
     default="127.0.0.1",
     help="address to {listen,connect} to when running as a {server, client}",
 )
 
-_ = _connection.add_argument(
+_connection.add_argument(
     "-p", "--port",
     type=int,
     default=50000,
@@ -135,23 +135,23 @@ subparsers = parser.add_subparsers(required=True, help="instance type")
 
 parser_cli = subparsers.add_parser("client", help="ADMM Client")
 parser_cli.set_defaults(func=run_client)
-_ = parser_cli.add_argument(
+parser_cli.add_argument(
     "dataset",
     help="file containing the dateset (*.csv.xz)",
     type=FileType('rb'),
 )
-_ = parser_cli.add_argument(
+parser_cli.add_argument(
     "-t", "--tgt-idx",
     help="index of the target column in the dataset",
     type=int,
 )
-_ = parser_cli.add_argument(
+parser_cli.add_argument(
     "-i", "--client-id",
     help="a number which separates one client from another",
     type=int,
     required=True,
 )
-_ = parser_cli.add_argument(
+parser_cli.add_argument(
     "-e", "--epsilon",
     help="differential privacy budget epsilon (float)",
     type=is_positive_float,
@@ -160,31 +160,31 @@ _ = parser_cli.add_argument(
 
 parser_srv = subparsers.add_parser("server", help="ADMM Server")
 parser_srv.set_defaults(func=run_server)
-_ = parser_srv.add_argument(
+parser_srv.add_argument(
     "-c", "--n-client",
     help="number of client connections to expect",
     type=int,
     required=True,
 )
-_ = parser_srv.add_argument(
+parser_srv.add_argument(
     "-f", "--n-feat",
     help="number of features in the dataset",
     type=int,
     required=True,
 )
-_ = parser_srv.add_argument(
+parser_srv.add_argument(
     "--coeffs-full",
     help="Return the coefficients of the connected " +
         "clients as well as the server's.",
     action="store_true",
 )
-_ = parser_srv.add_argument(
+parser_srv.add_argument(
     "--coeff-file",
     help="coeff for server and clients (default: disabled)",
     type=FileType("wb", 0),
     default=None,
 )
-_ = parser_srv.add_argument(
+parser_srv.add_argument(
     "--hist-file",
     help="coeff history file (default: disabled)",
     type=FileType("wb", 0),
