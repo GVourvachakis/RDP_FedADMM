@@ -30,53 +30,53 @@ class _Args(Namespace):
     randomize_sizes: bool
 
 
-parser = ArgumentParser(
+_parser = ArgumentParser(
     description="Split a dataset in a biased way",
     epilog=__doc__,
 )
 
-_ = parser.add_argument(
+_parser.add_argument(
     "dataset",
     help="CSV File containing the dateset",
     type=str,
 )
 
-_ = parser.add_argument(
+_parser.add_argument(
     "-d", "--directory",
     help="Where to export the split data",
     type=str,
     default="./splits",
 )
 
-_ = parser.add_argument(
+_parser.add_argument(
     "-t", "--target",
     help="Index of the target column in the dataset",
     type=int,
     required=True,
 )
 
-_ = parser.add_argument(
+_parser.add_argument(
     "-s", "--splits",
     help="How many subsets to create from the original",
     type=int,
     default=2,
 )
 
-_ = parser.add_argument(
+_parser.add_argument(
     "-b", "--bias",
     help="Bias factor (float between 0 and 1)",
     type=float,
     default=0.5,
 )
 
-_ = parser.add_argument(
+_parser.add_argument(
     "--test-size",
     help="Size of the test set relative to the dataset",
     type=float,
     default=0.15,
 )
 
-_ = parser.add_argument(
+_parser.add_argument(
     "--randomize-sizes",
     help="Randomize the sizes of each split (within reason)",
     type=bool,
@@ -228,16 +228,18 @@ def niid_reg_split(
 
 
 if __name__ == "__main__":
-    args = cast(_Args, parser.parse_args())
-    rng = np.random.default_rng(42)
+    args: _Args = cast(_Args, _parser.parse_args())
 
     assert 0 <= args.bias <= 1
 
     random.seed(42)
 
+    data: F64Arr
+    test_set: F64Arr
+    hmap: dict[int, F64Arr]
+
     data = np.genfromtxt(args.dataset, delimiter=",", skip_header=1)
     test_set, data = train_test_split(data, args.test_size)
-    hmap: dict[int, F64Arr]
     hmap = niid_reg_split(data, 8, args.splits, args.bias,
                           args.randomize_sizes)
 

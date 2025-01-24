@@ -55,8 +55,8 @@ def run_client(args: Args, log: Logger):
     X = np.delete(data, args.tgt_idx, axis=1)
 
     with ElasticNetADMMClient(
-        args.address,
-        args.port,
+        addr=args.address,
+        port=args.port,
         n_iter=args.n_iter,
         dp_params=(1, args.epsilon),
     ) as cli:
@@ -66,8 +66,9 @@ def run_client(args: Args, log: Logger):
 def run_server(args: Args, log: Logger):
     log.info(f"Registering server for {args.address}:{args.port}")
     with ElasticNetADMMServer(
-        args.address,
-        args.port,
+        ridge_multiplier=10,
+        addr=args.address,
+        port=args.port,
         max_clients=args.n_client,
         n_iter=args.n_iter,
         coeffs_full=args.coeffs_full,

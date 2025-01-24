@@ -13,7 +13,7 @@ from logging import getLogger
 from random import sample
 from select import select
 from socket import socket
-from typing import Self
+from typing import Required, Self, TypedDict
 
 import numpy as np
 from numpy.random import Generator
@@ -25,8 +25,10 @@ log = getLogger(__name__)
 
 
 __all__ = [
-    "ADMMServer",
     "ADMMClient",
+    "ADMMClientParams",
+    "ADMMServer",
+    "ADMMServerParams",
 ]
 
 
@@ -47,6 +49,19 @@ class _ADMMBase:
             raise RuntimeError("Not fitted")
 
         return X @ self._coeffs
+
+
+class ADMMClientParams(TypedDict, total=False):
+    addr: Required[str]
+    port: Required[int]
+    n_iter: Required[int]
+    seed: int | None
+    step_size: float
+    penalty_term: float
+    clipping_threshold: float
+    cache_factorizations: bool
+    dp_params: tuple[float, float]
+    dp_mechanism: str
 
 
 class ADMMClient(_ADMMBase, Client):
@@ -156,6 +171,19 @@ class ADMMClient(_ADMMBase, Client):
         self._coeffs = x
 
         return self
+
+
+class ADMMServerParams(TypedDict, total=False):
+    addr: Required[str]
+    port: Required[int]
+    max_clients: Required[int]
+    n_iter: Required[int]
+    seed: int | None
+    step_size: float
+    penalty_term: float
+    subset_size: float
+    coeffs_full: bool
+    coeff_history: bool
 
 
 class ADMMServer(_ADMMBase, Server):

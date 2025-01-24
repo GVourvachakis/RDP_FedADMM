@@ -4,7 +4,7 @@ from collections.abc import Callable
 from contextlib import ContextDecorator
 from logging import getLogger
 from types import TracebackType
-from typing import Any, override
+from typing import Any, Self, override
 
 import numpy as np
 
@@ -31,7 +31,7 @@ class _NetworkBase(ContextDecorator):
         super().__init__()
         self._socket: socket.socket = sock((addr, port))
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
     def send_array(self, arr: FArr, conn: socket.socket | None = None) -> None:
@@ -138,7 +138,7 @@ class Server(_NetworkBase):
         self._client_conn: dict[NetTuple, socket.socket] = {}
         self._max_clients: int = max_clients
 
-    def activate_server(self):
+    def activate_server(self) -> None:
         self._socket.listen(self._max_clients)
         while len(self._client_conn) < self._max_clients:
             addr: NetTuple
