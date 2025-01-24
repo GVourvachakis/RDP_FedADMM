@@ -18,7 +18,7 @@ stages:
 
 image: fedora:latest
 
-test_list:
+test_lint:
   stage: test
   script:
     - echo "Installing packages"
