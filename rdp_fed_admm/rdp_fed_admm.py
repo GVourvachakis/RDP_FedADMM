@@ -4,7 +4,7 @@ from typing import cast
 from ._args import Args, parser
 
 
-def rdp_fed_admm():
+def rdp_fed_admm() -> None:
     args = cast(Args, parser.parse_args())
     log = logging.getLogger(__name__)
 

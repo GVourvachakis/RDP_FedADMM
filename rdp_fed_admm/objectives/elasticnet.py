@@ -9,10 +9,15 @@ The way the optimization problem is formulated under ADMM, this only
 applies to the soft-thresholding operator during the `z`-update.
 """
 
-from typing import Any, final, override
+from typing import Unpack, final, override
 
 from .._types import FArr
-from .lasso import LassoADMMClient, LassoADMMServer
+from .lasso import (
+    LassoADMMClient,
+    LassoADMMClientParams,
+    LassoADMMServer,
+    LassoADMMServerParams,
+)
 
 __all__ = [
     "ElasticNetADMMClient",
@@ -22,19 +27,18 @@ __all__ = [
 
 @final
 class ElasticNetADMMClient(LassoADMMClient):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # pyright: ignore[reportAny]
-        super().__init__(*args, **kwargs)
+    def __init__(self, **kwargs: Unpack[LassoADMMClientParams]) -> None:
+        super().__init__(**kwargs)
 
 
 @final
 class ElasticNetADMMServer(LassoADMMServer):
     def __init__(
         self,
-        *args: Any,  # pyright: ignore[reportAny]
         ridge_multiplier: float = 1.,
-        **kwargs: Any,  # pyright: ignore[reportAny]
+        **kwargs: Unpack[LassoADMMServerParams],
     ) -> None:
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self._ridge_mult = ridge_multiplier
 
     @override

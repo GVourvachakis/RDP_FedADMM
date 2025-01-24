@@ -36,9 +36,11 @@ test_types:
     - python -m venv venv
     - source venv/bin/activate
     - pip install basedpyright .
-    - ls -lAh
+    - echo "Performing type check"
     - 'basedpyright --gitlabcodequality ci-report.json -p ./pyproject.toml
       rdp_fed_admm'
+    - echo "Checking type coverage"
+    - basedpyright --ignoreexternal --verifytypes rdp_fed_admm
   artifacts:
     reports:
       codequality: ci-report.json

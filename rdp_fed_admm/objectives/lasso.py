@@ -10,23 +10,29 @@ of this operation amounts to a soft-thresholding operator applied as the
 `z`-update.
 """
 
-from typing import Any, override
+from typing import Unpack, override
 
 import numpy as np
 
-from .._admm import ADMMClient, ADMMServer
+from .._admm import ADMMClient, ADMMClientParams, ADMMServer, ADMMServerParams
 from .._rdp import get_mechanism
 from .._types import FArr
 
 __all__ = [
     "LassoADMMClient",
+    "LassoADMMClientParams",
     "LassoADMMServer",
+    "LassoADMMServerParams",
 ]
 
 
+class LassoADMMClientParams(ADMMClientParams):
+    pass
+
+
 class LassoADMMClient(ADMMClient):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # pyright: ignore[reportAny]
-        super().__init__(*args, **kwargs)  # pyright: ignore[reportAny]
+    def __init__(self, **kwargs: Unpack[ADMMClientParams]) -> None:
+        super().__init__(**kwargs)
 
     @override
     def _x_update_sensitivity(self) -> float:
@@ -122,9 +128,13 @@ class LassoADMMClient(ADMMClient):
         return self._cache["lhs"] @ (self._cache["XtY"] + rho * (z - u))
 
 
+class LassoADMMServerParams(ADMMServerParams):
+    pass
+
+
 class LassoADMMServer(ADMMServer):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # pyright: ignore[reportAny]
-        super().__init__(*args, **kwargs)  # pyright: ignore[reportAny]
+    def __init__(self, **kwargs: Unpack[ADMMServerParams]) -> None:
+        super().__init__(**kwargs)
 
     @staticmethod
     def soft_threshold(X: FArr, thresh: float) -> FArr:
