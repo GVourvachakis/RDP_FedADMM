@@ -156,7 +156,6 @@ class Server(_NetworkBase):
         ret = super().__exit__(exc_type, exc_value, traceback)
 
         for peer, conn in self._client_conn.items():
-            breakpoint()
             log.info("Closing %s:%d", *peer)
             conn.shutdown(socket.SHUT_RDWR)
             conn.close()
