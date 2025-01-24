@@ -81,9 +81,11 @@ def run_server(args: Args, log: Logger):
             fname = cast(str, args.coeff_file.name)
             arity = "full" if args.coeffs_full else "server"
             log.info(f"Saving {arity} coeffs to {fname}")
-            ary = srv.coeffs
-            hdr = f"Coeffs: {ary.shape} m: {ary.mean():.3f}, s: {ary.std():.3f}"
-            np.savetxt(args.coeff_file, ary, delimiter=",", header=hdr)
+
+            # NOTE: atleast_2d forces savetxt to export coeffs
+            # in one line making the file easier to manipulate
+            coeffs = np.atleast_2d(srv.coeffs)
+            np.savetxt(args.coeff_file, coeffs, delimiter=",")
 
         if args.hist_file is not None:
             fname = cast(str, args.hist_file.name)
