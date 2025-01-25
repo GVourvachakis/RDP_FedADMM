@@ -38,6 +38,7 @@ class Args(Namespace):
     hist_file: FileIO | None
     coeffs_full: bool
     coeff_file: FileIO | None
+    weighted_aggregation: bool
     func: Callable[..., None]
 
 
@@ -75,6 +76,7 @@ def run_server(args: Args, log: Logger):
         n_iter=args.n_iter,
         coeffs_full=args.coeffs_full,
         coeff_history=args.hist_file is not None,
+        weighted_aggregation=args.weighted_aggregation,
     ) as srv:
         log.info(f"Listening on {args.address}:{args.port}")
         srv.fit(args.n_feat)
@@ -200,4 +202,9 @@ parser_srv.add_argument(
     help="coeff history file (default: disabled)",
     type=FileType("wb", 0),
     default=None,
+)
+parser_srv.add_argument(
+    "--weighted-aggregation",
+    help="weigh client parameters by size of their dataset",
+    action="store_true",
 )
