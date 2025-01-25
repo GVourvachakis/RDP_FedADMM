@@ -135,14 +135,8 @@ class ADMMClient(_ADMMBase, Client):
         du: FArr = np.zeros_like(u)
 
         if self._dp_mechanism is not None:
-            x_upd_noise = self._get_noise(
-                self._x_update_sensitivity(),
-                dim_weights,
-            ) / self._n_iter
-
             n_data_noise = self._get_noise(1 / self._n_data)
         else:
-            x_upd_noise = 0
             n_data_noise = 0
 
         self.send_array(np.array([self._n_data + n_data_noise]))
@@ -158,10 +152,15 @@ class ADMMClient(_ADMMBase, Client):
             x = self._x_update(X, Y, 2 * z - u, u, z)
             # rsd = self._clip(x - z, self._clip_thresh)  # MAE triples
             rsd = x - z
-            x_upd_noise = self._get_noise(
-                self._x_update_sensitivity(),
-                dim_weights,
-            ) / self._n_iter / 2
+
+            if self._dp_mechanism is not None:
+                x_upd_noise = self._get_noise(
+                    self._x_update_sensitivity(),
+                    dim_weights,
+                ) / self._n_iter / 2
+            else:
+                x_upd_noise = 0
+
             du = 2 * self._step * (rsd + x_upd_noise)
 
             self.send_array(du)
