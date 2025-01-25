@@ -52,9 +52,9 @@ class _ADMMBase:
 
 
 class ADMMClientParams(TypedDict, total=False):
-    addr: Required[str]
-    port: Required[int]
-    n_iter: Required[int]
+    addr: str
+    port: int
+    n_iter: int
     seed: int | None
     step_size: float
     penalty_term: float
@@ -67,9 +67,9 @@ class ADMMClientParams(TypedDict, total=False):
 class ADMMClient(_ADMMBase, Client):
     def __init__(
         self,
-        addr: str,
-        port: int,
-        n_iter: int,
+        addr: str = "127.0.0.1",
+        port: int = 50000,
+        n_iter: int = 25,
         seed: int | None = None,
         step_size: float = 0.3,
         penalty_term: float = 0.6,
@@ -174,10 +174,10 @@ class ADMMClient(_ADMMBase, Client):
 
 
 class ADMMServerParams(TypedDict, total=False):
-    addr: Required[str]
-    port: Required[int]
     max_clients: Required[int]
-    n_iter: Required[int]
+    addr: str
+    port: int
+    n_iter: int
     seed: int | None
     step_size: float
     penalty_term: float
@@ -189,10 +189,10 @@ class ADMMServerParams(TypedDict, total=False):
 class ADMMServer(_ADMMBase, Server):
     def __init__(
         self,
-        addr: str,
-        port: int,
         max_clients: int,
-        n_iter: int,
+        addr: str = "127.0.0.1",
+        port: int = 50000,
+        n_iter: int = 25,
         seed: int | None = None,
         step_size: float = 0.3,
         penalty_term: float = 0.6,
