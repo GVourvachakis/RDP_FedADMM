@@ -9,7 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from io import BufferedReader, FileIO
 from logging import Logger
-from typing import cast
+from typing import Literal, cast
 
 import numpy as np
 
@@ -32,6 +32,7 @@ class Args(Namespace):
     client_id: int
     n_feat: int
     epsilon: float
+    dp_mechanism: Literal["rdp_gaussian"]
     n_client: int
     log_file: str
     hist_file: FileIO | None
@@ -59,6 +60,7 @@ def run_client(args: Args, log: Logger):
         port=args.port,
         n_iter=args.n_iter,
         dp_params=(1, args.epsilon),
+        dp_mechanism=args.dp_mechanism,
     ) as cli:
         cli.fit(X, Y)
 
@@ -158,6 +160,13 @@ parser_cli.add_argument(
     help="differential privacy budget epsilon (float)",
     type=is_positive_float,
     default=0.003,
+)
+parser_cli.add_argument(
+    "--dp-mechanism",
+    choices=["rdp_gaussian", None],
+    help="differential privacy mechanism",
+    type=str,
+    default=None,
 )
 
 parser_srv = subparsers.add_parser("server", help="ADMM Server")

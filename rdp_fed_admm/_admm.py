@@ -13,7 +13,7 @@ from logging import getLogger
 from random import sample
 from select import select
 from socket import socket
-from typing import Required, Self, TypedDict
+from typing import Literal, Required, Self, TypedDict
 
 import numpy as np
 from numpy.random import Generator
@@ -60,8 +60,8 @@ class ADMMClientParams(TypedDict, total=False):
     penalty_term: float
     clipping_threshold: float
     cache_factorizations: bool
+    dp_mechanism: Literal["rdp_gaussian"]
     dp_params: tuple[float, float]
-    dp_mechanism: str
 
 
 class ADMMClient(_ADMMBase, Client):
@@ -75,8 +75,8 @@ class ADMMClient(_ADMMBase, Client):
         penalty_term: float = 0.6,
         clipping_threshold: float = 0.1,
         cache_factorizations: bool = True,
+        dp_mechanism: Literal["rdp_gaussian"] | None = None,
         dp_params: tuple[float, float] = (1, 0.003),
-        dp_mechanism: str = "rdp_gaussian",
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
         Client.__init__(self, addr, port)
@@ -93,8 +93,10 @@ class ADMMClient(_ADMMBase, Client):
         self._coeffs: FArr | None
 
         assert all(i != 0 for i in dp_params)
-        self._dp_params: tuple[float, float] = dp_params
-        self._dp_mechanism: str = dp_mechanism
+
+        self._dp_mechanism: str | None = dp_mechanism
+        if dp_mechanism is not None:
+            self._dp_params: tuple[float, float] = dp_params
 
     @staticmethod
     def _clip(v: FArr, thresh: float) -> FArr:
@@ -104,12 +106,11 @@ class ADMMClient(_ADMMBase, Client):
     def _x_update_sensitivity(self) -> float:
         raise NotImplementedError("This is meant to be overridden")
 
-    def _get_noise_scale(
+    def _get_noise(
         self,
-        _params: tuple[float, float],
         _sensitivity: float,
-        _mechanism: str,
-    ) -> float:
+        _size: tuple[int, ...] | int = 1
+    ) -> FArr:
         raise NotImplementedError("This is meant to be overridden")
 
     def _cache_miss(self, key: str) -> bool:
@@ -133,20 +134,18 @@ class ADMMClient(_ADMMBase, Client):
         u: FArr = np.zeros_like(x)
         du: FArr = np.zeros_like(u)
 
-        x_upd_noise_stdev = self._get_noise_scale(
-            self._dp_params,
-            self._x_update_sensitivity(),
-            self._dp_mechanism,
-        ) / self._n_iter
+        if self._dp_mechanism is not None:
+            x_upd_noise = self._get_noise(
+                self._x_update_sensitivity(),
+                dim_weights,
+            ) / self._n_iter
 
-        n_data_noise_stdev = self._get_noise_scale(
-            self._dp_params,
-            1 / self._n_data,
-            self._dp_mechanism,
-        )
-        self.send_array(np.array([
-            self._n_data + self.rng.normal(scale=n_data_noise_stdev)
-        ]))
+            n_data_noise = self._get_noise(1 / self._n_data)
+        else:
+            x_upd_noise = 0
+            n_data_noise = 0
+
+        self.send_array(np.array([self._n_data + n_data_noise]))
 
         for _ in range(self._n_iter):
             log.debug("Waiting for z")
@@ -159,11 +158,11 @@ class ADMMClient(_ADMMBase, Client):
             x = self._x_update(X, Y, 2 * z - u, u, z)
             # rsd = self._clip(x - z, self._clip_thresh)  # MAE triples
             rsd = x - z
-            noise = 0.5 * self.rng.normal(
-                scale=x_upd_noise_stdev,
-                size=dim_weights,
-            )
-            du = 2 * self._step * (rsd + noise)
+            x_upd_noise = self._get_noise(
+                self._x_update_sensitivity(),
+                dim_weights,
+            ) / self._n_iter / 2
+            du = 2 * self._step * (rsd + x_upd_noise)
 
             self.send_array(du)
             u += du

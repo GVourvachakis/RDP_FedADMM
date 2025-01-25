@@ -70,12 +70,11 @@ class LassoADMMClient(ADMMClient):
         return sens
 
     @override
-    def _get_noise_scale(
+    def _get_noise(
         self,
-        params: tuple[float, float],
         sensitivity: float,
-        mechanism: str,
-    ) -> float:
+        size: tuple[int, ...] | int = 1,
+    ) -> FArr:
         """Noise var for Gaussian RDP ADMM x update.
 
         Under privacy amplification from iteration and the advanced
@@ -84,17 +83,12 @@ class LassoADMMClient(ADMMClient):
 
         Parameters
         ----------
-        params : tuple[float, float]
-            The RDP (α,ε) parameters.
         sensitivity : float
             The l-p sensitivity of the function to which the
             randomization mechanism will be applied. Whether `p` is 1
             or 2 depends also depends on the mechanism.
-        mechanism : str
-            The noise scale will be derived from this formula. The
-            exact type of formula depends on the privacy framework
-            (e.g. DP/RDP/zCDP) and the underlying distribution of
-            additive noise (e.g. Gaussian/Laplacian/RandSeq).
+        size : tuple[int, ...] | int = 1
+            The shape of the generated array. Passed to numpy's rng.
 
         Notes
         -----
@@ -108,8 +102,10 @@ class LassoADMMClient(ADMMClient):
         [2] Ilya Mironov, 2017
 
         """
-        mech = get_mechanism(mechanism)
-        return mech(sensitivity, params)
+        assert self._dp_mechanism is not None
+
+        mech = get_mechanism(self._dp_mechanism)
+        return mech(sensitivity, self._dp_params, size)
 
     @override
     def _x_update(self, X: FArr, Y: FArr, x: FArr, z: FArr, u: FArr) -> FArr:
