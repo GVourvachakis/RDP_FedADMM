@@ -38,6 +38,7 @@ class Args(Namespace):
     hist_file: FileIO | None
     coeffs_full: bool
     coeff_file: FileIO | None
+    ridge_multiplier: float
     weighted_aggregation: bool
     func: Callable[..., None]
 
@@ -69,7 +70,7 @@ def run_client(args: Args, log: Logger):
 def run_server(args: Args, log: Logger):
     log.info(f"Registering server for {args.address}:{args.port}")
     with ElasticNetADMMServer(
-        ridge_multiplier=10,
+        ridge_multiplier=args.ridge_multiplier,
         addr=args.address,
         port=args.port,
         max_clients=args.n_client,
@@ -202,6 +203,12 @@ parser_srv.add_argument(
     help="coeff history file (default: disabled)",
     type=FileType("wb", 0),
     default=None,
+)
+parser_srv.add_argument(
+    "--ridge-multiplier",
+    help="linear ridge coefficient for elastic net",
+    type=float,
+    default=1,
 )
 parser_srv.add_argument(
     "--weighted-aggregation",
