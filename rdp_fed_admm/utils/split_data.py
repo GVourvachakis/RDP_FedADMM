@@ -245,4 +245,5 @@ if __name__ == "__main__":
 
     _create_dir(args.directory)
     export_data(test_set, "test", args.directory)
+    export_data(data, "train", args.directory)
     export_splits(hmap, args.directory)
