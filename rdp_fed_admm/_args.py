@@ -1,9 +1,9 @@
 from argparse import (
+    ArgumentDefaultsHelpFormatter,
     ArgumentParser,
     ArgumentTypeError,
     FileType,
     Namespace,
-    RawDescriptionHelpFormatter,
 )
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -101,7 +101,7 @@ def run_server(args: Args, log: Logger):
 parser = ArgumentParser(
     description="Rényi-DP Federated ADMM Optimization",
     epilog=__doc__,
-    formatter_class=RawDescriptionHelpFormatter,
+    formatter_class=ArgumentDefaultsHelpFormatter,
 )
 
 parser.add_argument(
@@ -121,7 +121,7 @@ parser.add_argument(
     "-n", "--n-iter",
     help="number of optimization rounds before stopping",
     type=int,
-    default=25,
+    default=150,
 )
 
 _connection = parser.add_argument_group(description="connection")
@@ -140,7 +140,11 @@ _connection.add_argument(
 
 subparsers = parser.add_subparsers(required=True, help="instance type")
 
-parser_cli = subparsers.add_parser("client", help="ADMM Client")
+parser_cli = subparsers.add_parser(
+    "client",
+    help="ADMM Client",
+    formatter_class=ArgumentDefaultsHelpFormatter
+)
 parser_cli.set_defaults(func=run_client)
 parser_cli.add_argument(
     "dataset",
@@ -172,7 +176,11 @@ parser_cli.add_argument(
     default=None,
 )
 
-parser_srv = subparsers.add_parser("server", help="ADMM Server")
+parser_srv = subparsers.add_parser(
+    "server",
+    help="ADMM Server",
+    formatter_class=ArgumentDefaultsHelpFormatter,
+)
 parser_srv.set_defaults(func=run_server)
 parser_srv.add_argument(
     "-c", "--n-client",
@@ -194,13 +202,13 @@ parser_srv.add_argument(
 )
 parser_srv.add_argument(
     "--coeff-file",
-    help="coeff for server and clients (default: disabled)",
+    help="coeff for server and clients",
     type=FileType("wb", 0),
     default=None,
 )
 parser_srv.add_argument(
     "--hist-file",
-    help="coeff history file (default: disabled)",
+    help="coeff history file",
     type=FileType("wb", 0),
     default=None,
 )
