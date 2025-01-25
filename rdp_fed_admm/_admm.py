@@ -75,7 +75,7 @@ class ADMMClient(_ADMMBase, Client):
         penalty_term: float = 0.6,
         clipping_threshold: float = 0.1,
         cache_factorizations: bool = True,
-        dp_mechanism: Literal["rdp_gaussian"] | None = None,
+        dp_mechanism: Literal["rdp_gaussian"] = "rdp_gaussian",
         dp_params: tuple[float, float] = (1, 0.003),
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
@@ -94,9 +94,14 @@ class ADMMClient(_ADMMBase, Client):
 
         assert all(i != 0 for i in dp_params)
 
-        self._dp_mechanism: str | None = dp_mechanism
-        if dp_mechanism is not None:
+        self._do_dp: bool
+        self._dp_mechanism: str = dp_mechanism
+        if dp_params[1] > 0:
+            self._do_dp = True
             self._dp_params: tuple[float, float] = dp_params
+        else:
+            self._do_dp = False
+            log.warning(f"DP Disabled: Received {dp_params[1]} <= 0.")
 
     @staticmethod
     def _clip(v: FArr, thresh: float) -> FArr:
@@ -134,7 +139,7 @@ class ADMMClient(_ADMMBase, Client):
         u: FArr = np.zeros_like(x)
         du: FArr = np.zeros_like(u)
 
-        if self._dp_mechanism is not None:
+        if self._do_dp:
             n_data_noise = self._get_noise(1 / self._n_data)
         else:
             n_data_noise = 0
@@ -153,7 +158,7 @@ class ADMMClient(_ADMMBase, Client):
             # rsd = self._clip(x - z, self._clip_thresh)  # MAE triples
             rsd = x - z
 
-            if self._dp_mechanism is not None:
+            if self._do_dp:
                 x_upd_noise = self._get_noise(
                     self._x_update_sensitivity(),
                     dim_weights,

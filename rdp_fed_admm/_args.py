@@ -1,7 +1,6 @@
 from argparse import (
     ArgumentDefaultsHelpFormatter,
     ArgumentParser,
-    ArgumentTypeError,
     FileType,
     Namespace,
 )
@@ -41,13 +40,6 @@ class Args(Namespace):
     ridge_multiplier: float
     weighted_aggregation: bool
     func: Callable[..., None]
-
-
-def is_positive_float(val: str):
-    fval: float = float(val)
-    if fval > 0:
-        return fval
-    raise ArgumentTypeError(f"{val} isn't strictly positive")
 
 
 def run_client(args: Args, log: Logger):
@@ -165,15 +157,15 @@ parser_cli.add_argument(
 parser_cli.add_argument(
     "-e", "--epsilon",
     help="differential privacy budget epsilon (float)",
-    type=is_positive_float,
+    type=float,
     default=0.003,
 )
 parser_cli.add_argument(
     "--dp-mechanism",
-    choices=["rdp_gaussian", None],
+    choices=["rdp_gaussian"],
     help="differential privacy mechanism",
     type=str,
-    default=None,
+    default="rdp_gaussian",
 )
 
 parser_srv = subparsers.add_parser(

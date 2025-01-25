@@ -102,8 +102,6 @@ class LassoADMMClient(ADMMClient):
         [2] Ilya Mironov, 2017
 
         """
-        assert self._dp_mechanism is not None
-
         mech = get_mechanism(self._dp_mechanism)
         return mech(sensitivity, self._dp_params, size)
 
