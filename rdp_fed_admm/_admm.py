@@ -182,6 +182,7 @@ class ADMMServerParams(TypedDict, total=False):
     subset_size: float
     coeffs_full: bool
     coeff_history: bool
+    weighted_aggregation: bool
 
 
 class ADMMServer(_ADMMBase, Server):
@@ -197,6 +198,7 @@ class ADMMServer(_ADMMBase, Server):
         subset_size: float = 0.7,
         coeffs_full: bool = False,
         coeff_history: bool = False,
+        weighted_aggregation: bool = False,
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
         Server.__init__(self, addr, port, max_clients)
@@ -209,6 +211,8 @@ class ADMMServer(_ADMMBase, Server):
         self._coeffs_full: FArr
         self._keep_coeff_hist: bool = coeff_history
         self._coeff_hist: FArr
+
+        self._wagg: bool = weighted_aggregation
 
     @property
     def coeffs(self) -> FArr:
@@ -276,7 +280,11 @@ class ADMMServer(_ADMMBase, Server):
                     if self._keep_coeff_hist:
                         self._coeff_hist[idx + 1, iter, :] = u
 
-                    du += n_data_client[idx] * u
+                    if self._wagg:
+                        du += n_data_client[idx] * u
+                    else:
+                        du += u
+
                     subset.remove(fd)
 
             du /= nsubs
