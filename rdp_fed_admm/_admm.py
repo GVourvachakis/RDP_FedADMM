@@ -36,7 +36,7 @@ class _ADMMBase:
         self,
         seed: int | None = None,
         step_size: float = 0.3,
-        penalty_term: float = 0.05,
+        penalty_term: float = 10,
     ) -> None:
         self.rng: Generator = np.random.default_rng(seed)
         self._step_size: float = step_size
@@ -117,7 +117,7 @@ class ADMMClient(_ADMMBase, Client):
         return key not in self._cache or not self._use_cache
 
     def _x_update(
-        self, _X: FArr, _Y: FArr, _x: FArr, _z: FArr, _u: FArr, _m: int,
+        self, _X: FArr, _Y: FArr, _z: FArr, _u: FArr,
     ) -> FArr:
         raise NotImplementedError("This is meant to be overridden")
 
@@ -145,16 +145,13 @@ class ADMMClient(_ADMMBase, Client):
             log.debug("Waiting for z")
 
             try:
-                n_clients: int = self.recv_array()[0]
-            except ConnectionResetError:
-                raise
-
-            try:
                 z = self.recv_array()
             except ConnectionResetError:
+                self._coeffs = x
+                log.debug(self._coeffs)
                 raise
 
-            x = self._x_update(X, Y, 2 * z - u, u, z, n_clients)
+            x = self._x_update(X, Y, z, u)
             # rsd = self._clip(x - z, self._clip_thresh)  # MAE triples
             rsd = x - z
 
@@ -170,9 +167,6 @@ class ADMMClient(_ADMMBase, Client):
 
             self.send_array(du)
             u += du
-
-        self._coeffs = x
-        log.debug(self._coeffs)
 
         return self
 
@@ -267,7 +261,6 @@ class ADMMServer(_ADMMBase, Server):
             nsubs = len(subset)
 
             for fd in subset:
-                self.send_array(np.array([nsubs]), fd)
                 self.send_array(z, fd)
 
             while subset:

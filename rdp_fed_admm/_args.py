@@ -38,7 +38,7 @@ class Args(Namespace):
     coeffs_full: bool
     coeff_file: FileIO | None
     ridge_multiplier: float
-    lasso_multiplier: float
+    lasso_multiplier: float | None
     weighted_aggregation: bool
     func: Callable[..., None]
 
@@ -211,7 +211,7 @@ parser_srv.add_argument(
     "--lasso-multiplier",
     help="linear lasso (l1) coefficient for elastic net",
     type=float,
-    default=1,
+    default=None,
 )
 parser_srv.add_argument(
     "--ridge-multiplier",

@@ -25,8 +25,6 @@ __all__ = [
     "LassoADMMServerParams",
 ]
 
-L1_PENALTY = 1
-
 
 class LassoADMMClientParams(ADMMClientParams):
     pass
@@ -66,7 +64,7 @@ class LassoADMMClient(ADMMClient):
 
         """
         L = 1
-        sens = 4 * self._step_size * L * self._penalty_term
+        sens = 4 * self._step_size * L
         sens /= self._n_data
 
         return sens
@@ -112,19 +110,16 @@ class LassoADMMClient(ADMMClient):
         self,
         X: FArr,
         Y: FArr,
-        x: FArr,
         z: FArr,
         u: FArr,
-        m: int,
     ) -> FArr:
         """Lasso ADMM x update.
 
         Given X, Y the data, x, z, u the ADMM variables, computes:
-            x' := (XtX + 2m/ρ I)^(-1) (XtY + 2m/ρ (2z - u))
-        where ρ is the proximal penalty term and m is the number
-        of clients in the _global_ pool.
+            x' := (XtX + 2/ρ I)^(-1) (XtY + 2/ρ (z - u))
+        where ρ is the proximal penalty term.
         """
-        l = 2 * m / self._penalty_term
+        l = 2 / self._penalty_term
 
         if self._cache_miss("lhs"):
             XtX: FArr = X.T @ X
@@ -136,21 +131,22 @@ class LassoADMMClient(ADMMClient):
         if self._cache_miss("XtY"):
             self._cache["XtY"] = X.T @ Y
 
-        return self._cache["lhs"] @ (self._cache["XtY"] + l * (2 * z - u))
+        return self._cache["lhs"] @ (self._cache["XtY"] + l * (z - u))
 
 
 class LassoADMMServerParams(ADMMServerParams):
-    lasso_multiplier: float
+    lasso_multiplier: float | None
 
 
 class LassoADMMServer(ADMMServer):
     def __init__(
         self,
-        lasso_multiplier: float = 1.,
+        lasso_multiplier: float | None = None,
         **kwargs: Unpack[ADMMServerParams],
     ) -> None:
-        self._lasso_multiplier: float = lasso_multiplier
         super().__init__(**kwargs)
+        if lasso_multiplier is None:
+            self._lasso_multiplier: float = self._penalty_term
 
     @staticmethod
     def soft_threshold(X: FArr, thresh: float) -> FArr:
@@ -163,9 +159,11 @@ class LassoADMMServer(ADMMServer):
         The lasso regularizer, i.e. the function:
             f(x) := l1 || x ||₁
         has a proximal operator:
-            prox(v; l1, f) = S(.; ρ * l1)
+            prox(v; l1, f) = S(.; l1 / ρ / n_clients)
         which for the case of the z_update is the soft_thresholding
         operator.
         """
-        threshold: float = self._penalty_term * self._lasso_multiplier
+        threshold: float = self._lasso_multiplier
+        threshold /= self._penalty_term
+        threshold /= self._n_clients
         return self.soft_threshold(z, threshold)
