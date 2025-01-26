@@ -10,7 +10,7 @@ def rdp_fed_admm() -> None:
 
     logging.basicConfig(format="[%(levelname)s] %(asctime)s %(message)s",
                         datefmt='%m/%d/%Y %I:%M:%S %p',
-                        level=logging.INFO if args.verbose else logging.WARNING,
+                        level=min(10, 30 - 10 * args.verbose),
                         filename=cast(str | None, args.log_file))
 
     args.func(args, log)

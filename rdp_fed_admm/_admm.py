@@ -23,8 +23,6 @@ from ._types import FArr
 
 log = getLogger(__name__)
 
-RHO_PENALTY = 0.0005
-
 __all__ = [
     "ADMMClient",
     "ADMMClientParams",
@@ -38,11 +36,11 @@ class _ADMMBase:
         self,
         seed: int | None = None,
         step_size: float = 0.3,
-        penalty_term: float = 0.6,
+        penalty_term: float = 0.05,
     ) -> None:
         self.rng: Generator = np.random.default_rng(seed)
         self._step_size: float = step_size
-        self._penalty_term: float = RHO_PENALTY
+        self._penalty_term: float = penalty_term
         self._coeffs: FArr | None
 
     def predict(self, X: FArr) -> FArr:
@@ -119,7 +117,7 @@ class ADMMClient(_ADMMBase, Client):
         return key not in self._cache or not self._use_cache
 
     def _x_update(
-        self, _X: FArr, _Y: FArr, _x: FArr, _z: FArr, _u: FArr
+        self, _X: FArr, _Y: FArr, _x: FArr, _z: FArr, _u: FArr, _m: int,
     ) -> FArr:
         raise NotImplementedError("This is meant to be overridden")
 
@@ -147,11 +145,16 @@ class ADMMClient(_ADMMBase, Client):
             log.debug("Waiting for z")
 
             try:
+                n_clients: int = self.recv_array()[0]
+            except ConnectionResetError:
+                raise
+
+            try:
                 z = self.recv_array()
             except ConnectionResetError:
                 raise
 
-            x = self._x_update(X, Y, 2 * z - u, u, z)
+            x = self._x_update(X, Y, 2 * z - u, u, z, n_clients)
             # rsd = self._clip(x - z, self._clip_thresh)  # MAE triples
             rsd = x - z
 
@@ -169,6 +172,7 @@ class ADMMClient(_ADMMBase, Client):
             u += du
 
         self._coeffs = x
+        log.debug(self._coeffs)
 
         return self
 
@@ -263,9 +267,11 @@ class ADMMServer(_ADMMBase, Server):
             nsubs = len(subset)
 
             for fd in subset:
+                self.send_array(np.array([nsubs]), fd)
                 self.send_array(z, fd)
 
             while subset:
+
                 rfds, _, efds = select(subset, [], subset)
 
                 if efds:
@@ -296,5 +302,7 @@ class ADMMServer(_ADMMBase, Server):
                 self._coeff_hist[0, iter, :] = z
 
         self._coeffs = z
+        log.debug(self.coeffs)
+        print(self.coeffs)
 
         return self
