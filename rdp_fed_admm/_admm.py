@@ -162,7 +162,7 @@ class ADMMClient(_ADMMBase, Client):
                 x_upd_noise = self._get_noise(
                     self._x_update_sensitivity(),
                     dim_weights,
-                )
+                ) / 2
             else:
                 x_upd_noise = 0
 

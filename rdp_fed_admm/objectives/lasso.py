@@ -107,6 +107,12 @@ class LassoADMMClient(ADMMClient):
 
     @override
     def _x_update(self, X: FArr, Y: FArr, x: FArr, z: FArr, u: FArr) -> FArr:
+        """Lasso ADMM x update.
+
+        Given X, Y the data, x, z, u the ADMM variables, computes:
+            x' := (XtX + ρI)^(-1) (XtY + ρ(z - u))
+        where ρ is the proximal penalty term.
+        """
         rho = self._penalty_term
 
         if self._cache_miss("lhs"):
