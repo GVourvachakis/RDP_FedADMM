@@ -76,7 +76,7 @@ class ADMMClient(_ADMMBase, Client):
         clipping_threshold: float = 0.1,
         cache_factorizations: bool = True,
         dp_mechanism: Literal["rdp_gaussian"] = "rdp_gaussian",
-        dp_params: tuple[float, float] = (1, 0.003),
+        dp_params: tuple[float, float] = (1, 0.01),
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size, penalty_term)
         Client.__init__(self, addr, port)
