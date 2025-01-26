@@ -148,7 +148,7 @@ class ADMMClient(_ADMMBase, Client):
                 z = self.recv_array()
             except ConnectionResetError:
                 self._coeffs = x
-                log.info(self._coeffs)
+                log.info("SSCoeff: %.4g" % (self._coeffs @ self._coeffs.T))
                 raise
 
             x = self._x_update(X, Y, z, u)
@@ -295,6 +295,6 @@ class ADMMServer(_ADMMBase, Server):
                 self._coeff_hist[0, iter, :] = z
 
         self._coeffs = z
-        log.info(self.coeffs)
+        log.info("SSCoeff: %.4g" % (self.coeffs @ self.coeffs.T))
 
         return self
