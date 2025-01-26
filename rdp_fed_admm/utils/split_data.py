@@ -28,6 +28,7 @@ class _Args(Namespace):
     bias: float
     test_size: float
     randomize_sizes: bool
+    no_normalize: bool
 
 
 _parser = ArgumentParser(
@@ -37,50 +38,56 @@ _parser = ArgumentParser(
 
 _parser.add_argument(
     "dataset",
-    help="CSV File containing the dateset",
+    help="csv File containing the dateset",
     type=str,
 )
 
 _parser.add_argument(
     "-d", "--directory",
-    help="Where to export the split data",
+    help="where to export the split data",
     type=str,
     default="./splits",
 )
 
 _parser.add_argument(
     "-t", "--target",
-    help="Index of the target column in the dataset",
+    help="index of the target column in the dataset",
     type=int,
     required=True,
 )
 
 _parser.add_argument(
     "-s", "--splits",
-    help="How many subsets to create from the original",
+    help="how many subsets to create from the original",
     type=int,
     default=2,
 )
 
 _parser.add_argument(
     "-b", "--bias",
-    help="Bias factor (float between 0 and 1)",
+    help="bias factor (float between 0 and 1)",
     type=float,
     default=0.5,
 )
 
 _parser.add_argument(
     "--test-size",
-    help="Size of the test set relative to the dataset",
+    help="size of the test set relative to the dataset",
     type=float,
     default=0.15,
 )
 
 _parser.add_argument(
     "--randomize-sizes",
-    help="Randomize the sizes of each split (within reason)",
+    help="randomize the sizes of each split (within reason)",
     type=bool,
     default=True,
+)
+
+_parser.add_argument(
+    "--no-normalize",
+    help="don't perform normalization of the dataset",
+    action="store_true",
 )
 
 
@@ -239,11 +246,17 @@ if __name__ == "__main__":
     hmap: dict[int, F64Arr]
 
     data = np.genfromtxt(args.dataset, delimiter=",", skip_header=1)
+
+    if not args.no_normalize:
+        data /= np.linalg.norm(data, axis=0)
+
+    _create_dir(args.directory)
+    export_data(data, "full", args.directory)
+
     test_set, data = train_test_split(data, args.test_size)
     hmap = niid_reg_split(data, 8, args.splits, args.bias,
                           args.randomize_sizes)
 
-    _create_dir(args.directory)
     export_data(test_set, "test", args.directory)
     export_data(data, "train", args.directory)
     export_splits(hmap, args.directory)

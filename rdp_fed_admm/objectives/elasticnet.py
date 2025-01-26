@@ -61,6 +61,6 @@ class ElasticNetADMMServer(LassoADMMServer):
         ridge_threshold: float = self._ridge_mult / self._penalty_term
         ridge_threshold /= self._n_clients
 
-        shrinkage: float = 1 + self._step_size * self._ridge_mult
+        shrinkage: float = 1 + self._step_size * ridge_threshold
 
         return super()._z_update(z) / shrinkage

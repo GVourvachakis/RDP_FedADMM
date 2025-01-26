@@ -142,7 +142,7 @@ class LassoADMMServer(ADMMServer):
 
     @override
     def _z_update(self, z: FArr):
-        threshold: float = self._step_size / self._penalty_term
+        threshold: float = self._step_size * self._penalty_term
         threshold /= self._n_clients
 
         return self.soft_threshold(z, threshold)
