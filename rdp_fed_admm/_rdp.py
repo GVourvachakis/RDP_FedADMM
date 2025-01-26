@@ -1,10 +1,18 @@
 """Formulas for various DP noise mechanisms."""
 
+from logging import getLogger
+
 import numpy as np
 from numpy.random import Generator
 
 from ._types import FArr, MDPNoise
 from .utils._etc import call_gettr
+
+__all__ = [
+    "get_mechanism",
+]
+
+log = getLogger(__name__)
 
 
 def _rdp_gaussian_noise(
@@ -20,7 +28,9 @@ def _rdp_gaussian_noise(
         rng = np.random.default_rng()
 
     scale = alpha / (2 * epsilon) ** 2
-    scale *= sensitivity**2
+    # scale *= sensitivity
+
+    log.info(f"Scale: {scale:.4g}, Sens: {sensitivity:.4g}")
 
     return rng.normal(scale=scale, size=size)
 
