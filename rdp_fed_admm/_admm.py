@@ -92,8 +92,6 @@ class ADMMClient(_ADMMBase, Client):
         self._cache: dict[str, FArr] = {}
         self._coeffs: FArr | None
 
-        assert all(i != 0 for i in dp_params)
-
         self._do_dp: bool
         self._dp_mechanism: str = dp_mechanism
         if dp_params[1] > 0:
