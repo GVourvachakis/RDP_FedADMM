@@ -23,6 +23,7 @@ from ._types import FArr
 
 log = getLogger(__name__)
 
+RHO_PENALTY = 0.0005
 
 __all__ = [
     "ADMMClient",
@@ -41,7 +42,7 @@ class _ADMMBase:
     ) -> None:
         self.rng: Generator = np.random.default_rng(seed)
         self._step_size: float = step_size
-        self._penalty_term: float = penalty_term
+        self._penalty_term: float = RHO_PENALTY
         self._coeffs: FArr | None
 
     def predict(self, X: FArr) -> FArr:
@@ -57,7 +58,6 @@ class ADMMClientParams(TypedDict, total=False):
     n_iter: int
     seed: int | None
     step_size: float
-    penalty_term: float
     clipping_threshold: float
     cache_factorizations: bool
     dp_mechanism: Literal["rdp_gaussian"]
@@ -72,13 +72,12 @@ class ADMMClient(_ADMMBase, Client):
         n_iter: int = 150,
         seed: int | None = None,
         step_size: float = 0.3,
-        penalty_term: float = 0.6,
         clipping_threshold: float = 0.1,
         cache_factorizations: bool = True,
         dp_mechanism: Literal["rdp_gaussian"] = "rdp_gaussian",
         dp_params: tuple[float, float] = (1, 0.01),
     ) -> None:
-        _ADMMBase.__init__(self, seed, step_size, penalty_term)
+        _ADMMBase.__init__(self, seed, step_size)
         Client.__init__(self, addr, port)
 
         self._n_iter: int = n_iter
@@ -181,7 +180,6 @@ class ADMMServerParams(TypedDict, total=False):
     n_iter: int
     seed: int | None
     step_size: float
-    penalty_term: float
     subset_size: float
     coeffs_full: bool
     coeff_history: bool
@@ -197,13 +195,12 @@ class ADMMServer(_ADMMBase, Server):
         n_iter: int = 150,
         seed: int | None = None,
         step_size: float = 0.3,
-        penalty_term: float = 0.6,
         subset_size: float = 0.7,
         coeffs_full: bool = False,
         coeff_history: bool = False,
         weighted_aggregation: bool = False,
     ) -> None:
-        _ADMMBase.__init__(self, seed, step_size, penalty_term)
+        _ADMMBase.__init__(self, seed, step_size)
         Server.__init__(self, addr, port, max_clients)
         self._n_iter: int = n_iter
         self._subset_size: float = subset_size
