@@ -64,7 +64,7 @@ class LassoADMMClient(ADMMClient):
 
         """
         L = 1
-        sens = 4 * self._step_size * L * self._penalty_term
+        sens = 4 * self._step_size * L
         sens /= self._n_data
 
         return sens
@@ -106,35 +106,47 @@ class LassoADMMClient(ADMMClient):
         return mech(sensitivity, self._dp_params, size)
 
     @override
-    def _x_update(self, X: FArr, Y: FArr, x: FArr, z: FArr, u: FArr) -> FArr:
+    def _x_update(
+        self,
+        X: FArr,
+        Y: FArr,
+        z: FArr,
+        u: FArr,
+    ) -> FArr:
         """Lasso ADMM x update.
 
         Given X, Y the data, x, z, u the ADMM variables, computes:
-            x' := (XtX + ρI)^(-1) (XtY + ρ(z - u))
+            x' := (XtX + 2/ρ I)^(-1) (XtY + 2/ρ (z - u))
         where ρ is the proximal penalty term.
         """
-        rho = self._penalty_term
+        l = 2 / self._penalty_term
 
         if self._cache_miss("lhs"):
             XtX: FArr = X.T @ X
             nxn: tuple[int, ...] = XtX.shape
             I = np.eye(N=nxn[0], M=nxn[1])
-            lhs = np.linalg.inv(XtX + rho * I)
+            lhs = np.linalg.inv(XtX + l * I)
             self._cache["lhs"] = lhs
 
         if self._cache_miss("XtY"):
             self._cache["XtY"] = X.T @ Y
 
-        return self._cache["lhs"] @ (self._cache["XtY"] + rho * (z - u))
+        return self._cache["lhs"] @ (self._cache["XtY"] + l * (z - u))
 
 
 class LassoADMMServerParams(ADMMServerParams):
-    pass
+    lasso_multiplier: float | None
 
 
 class LassoADMMServer(ADMMServer):
-    def __init__(self, **kwargs: Unpack[ADMMServerParams]) -> None:
+    def __init__(
+        self,
+        lasso_multiplier: float | None = None,
+        **kwargs: Unpack[ADMMServerParams],
+    ) -> None:
         super().__init__(**kwargs)
+        if lasso_multiplier is None:
+            self._lasso_multiplier: float = self._penalty_term
 
     @staticmethod
     def soft_threshold(X: FArr, thresh: float) -> FArr:
@@ -142,7 +154,16 @@ class LassoADMMServer(ADMMServer):
 
     @override
     def _z_update(self, z: FArr):
-        threshold: float = self._step_size * self._penalty_term
-        threshold /= self._n_clients
+        """Lasso proximal update.
 
+        The lasso regularizer, i.e. the function:
+            f(x) := l1 || x ||₁
+        has a proximal operator:
+            prox(v; l1, f) = S(.; l1 / ρ / n_clients)
+        which for the case of the z_update is the soft_thresholding
+        operator.
+        """
+        threshold: float = self._lasso_multiplier
+        threshold /= self._penalty_term
+        threshold /= self._n_clients
         return self.soft_threshold(z, threshold)

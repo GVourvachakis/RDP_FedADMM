@@ -24,7 +24,7 @@ __all__ = [
 class Args(Namespace):
     address: str
     port: int
-    verbose: bool
+    verbose: int
     n_iter: int
     dataset: BufferedReader
     tgt_idx: int
@@ -38,6 +38,7 @@ class Args(Namespace):
     coeffs_full: bool
     coeff_file: FileIO | None
     ridge_multiplier: float
+    lasso_multiplier: float | None
     weighted_aggregation: bool
     func: Callable[..., None]
 
@@ -63,6 +64,7 @@ def run_server(args: Args, log: Logger):
     log.info(f"Registering server for {args.address}:{args.port}")
     with ElasticNetADMMServer(
         ridge_multiplier=args.ridge_multiplier,
+        lasso_multiplier=args.lasso_multiplier,
         addr=args.address,
         port=args.port,
         max_clients=args.n_client,
@@ -99,7 +101,8 @@ parser = ArgumentParser(
 parser.add_argument(
     "-v", "--verbose",
     help="increase verbosity",
-    action="store_true",
+    action="count",
+    default=0,
 )
 
 parser.add_argument(
@@ -205,8 +208,14 @@ parser_srv.add_argument(
     default=None,
 )
 parser_srv.add_argument(
+    "--lasso-multiplier",
+    help="linear lasso (l1) coefficient for elastic net",
+    type=float,
+    default=None,
+)
+parser_srv.add_argument(
     "--ridge-multiplier",
-    help="linear ridge coefficient for elastic net",
+    help="linear ridge (l2) coefficient for elastic net",
     type=float,
     default=1,
 )
