@@ -134,7 +134,7 @@ class LassoADMMClient(ADMMClient):
         return self._cache["lhs"] @ (self._cache["XtY"] + l * (z - u))
 
 
-class LassoADMMServerParams(ADMMServerParams):
+class LassoADMMServerParams(ADMMServerParams, total=False):
     lasso_multiplier: float | None
 
 
