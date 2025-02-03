@@ -6,6 +6,7 @@ from argparse import (
 )
 from collections.abc import Callable
 from dataclasses import dataclass
+from importlib import metadata
 from io import BufferedReader, FileIO
 from logging import Logger
 from typing import Literal, cast
@@ -25,6 +26,7 @@ class Args(Namespace):
     address: str
     port: int
     verbose: int
+    version: bool
     n_iter: int
     dataset: BufferedReader
     tgt_idx: int
@@ -103,6 +105,13 @@ parser.add_argument(
     help="increase verbosity",
     action="count",
     default=0,
+)
+
+parser.add_argument(
+    "--version",
+    help="print the distribution version and exit",
+    action="version",
+    version=f"%(prog)s {metadata.version("rdp-fed-admm")}",
 )
 
 parser.add_argument(

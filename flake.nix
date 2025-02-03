@@ -11,7 +11,7 @@
   in {
     packages.${system}.default = pypkgs.buildPythonApplication {
       pname = "rdp-fed-admm";
-      version = "0.0.1";
+      version = "1.0.0";
       pyproject = true;
       doCheck = true;
       src = self;
