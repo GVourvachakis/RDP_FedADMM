@@ -1,10 +1,12 @@
 variables:
   PKG_IND: $CI_COMMIT_SHORT_SHA
-  PKG_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_PROJECT_NAME}/1.0.0/p1-573.pdf"
+  PKG_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_PROJECT_NAME}/${CI_COMMIT_TAG}"
 
 stages:
   - test
   - build
+  - publish
+  - release
 
 image: fedora:latest
 
@@ -45,3 +47,48 @@ fedora_build:
   artifacts:
     paths:
       - "./dist/*.whl"
+
+publish:
+  stage: publish
+  rules:
+    - if: $CI_COMMIT_TAG
+  dependencies:
+    - fedora_build
+  script:
+    - dnf install -y jq
+    - ls -l ./dist/*.whl
+    - 'export FILE=$(ls ./dist/*.whl)'
+    - 'export FNAME=$(basename $FILE)'
+    - 'echo FNAME=$FNAME > publish.env && echo $FILE'
+    - 'cat publish.env'
+    - 'echo $PKG_URL/$FNAME $FILE'
+    - 'curl --verbose --location --header "JOB-TOKEN: ${CI_JOB_TOKEN}"
+      --upload-file $FILE "$PKG_URL/$FNAME"'
+    - 'curl -H "PRIVATE-TOKEN: $CI_API_TOKEN"
+      "$CI_API_V4_URL/projects/$CI_PROJECT_ID/repository/changelog?version=$CI_COMMIT_TAG"
+      | jq -r .notes > release_notes.md'
+  artifacts:
+    paths:
+      - release_notes.md
+    reports:
+      dotenv: publish.env
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  dependencies:
+    - publish
+  script:
+    - echo "Running release job"
+    - echo $FNAME
+  release:
+    name: 'Release $CI_COMMIT_TAG'
+    description: release_notes.md
+    tag_name: $CI_COMMIT_SHA
+    ref: $CI_COMMIT_SHA
+    assets:
+      links:
+        - name: $FNAME
+          url: $PKG_URL/$FNAME
