@@ -89,3 +89,10 @@ objectives:
 
 The cli program is registered as the main program of the project and should be
 made available with standard install methods.
+
+## Documentation & Resources
+
+For additional technical details:
+- A detailed technical analysis of the algorithm design, implementation methodology, and results can be found in [RDP_FedADMM.pdf](./RDP_FedADMM.pdf).
+
+- The presentation materials are maintained in our [GitLab repository](https://gitlab-csd.datacenter.uoc.gr/quantum-horizon-labs/rdp-fed-admm/-/tree/grading_branch?ref_type=heads), with [beamer_p1-573.pdf](./beamer_p1-573.pdf) containing the slides from the conducted presentation.
