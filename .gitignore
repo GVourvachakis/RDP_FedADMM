@@ -1,6 +1,7 @@
 *.log
 *.csv
 *.npy
+*.txt
 .mypy_cache
 __pycache__
 result

@@ -155,7 +155,7 @@ class LassoADMMServer(ADMMServer):
         return np.clip(X - thresh, 0, None) + np.clip(X + thresh, None, 0)
 
     @override
-    def _z_update(self, z: FArr):
+    def _z_update(self, du: FArr):
         """Lasso proximal update.
 
         The lasso regularizer, i.e. the function:
@@ -168,4 +168,5 @@ class LassoADMMServer(ADMMServer):
         threshold: float = self._lasso_multiplier
         threshold /= self._penalty_term
         threshold /= self._n_clients
-        return self.soft_threshold(z, threshold)
+        return self.soft_threshold(du, threshold)
+    

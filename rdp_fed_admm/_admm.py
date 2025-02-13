@@ -56,11 +56,12 @@ class ADMMClientParams(TypedDict, total=False):
     n_iter: int
     seed: int | None
     step_size: float
+    penalty_term: float
     clipping_threshold: float
     cache_factorizations: bool
     dp_mechanism: Literal["rdp_gaussian"]
     dp_params: tuple[float, float]
-
+    elastic_aggregation: bool  # New flag to enable elastic aggregation  
 
 class ADMMClient(_ADMMBase, Client):
     def __init__(
@@ -70,12 +71,14 @@ class ADMMClient(_ADMMBase, Client):
         n_iter: int = 150,
         seed: int | None = None,
         step_size: float = 0.3,
+        penalty_term: float = 10,
         clipping_threshold: float = 0.1,
         cache_factorizations: bool = True,
         dp_mechanism: Literal["rdp_gaussian"] = "rdp_gaussian",
         dp_params: tuple[float, float] = (1, 0.01),
+        elastic_aggregation: bool = False
     ) -> None:
-        _ADMMBase.__init__(self, seed, step_size)
+        _ADMMBase.__init__(self, seed, step_size, penalty_term)
         Client.__init__(self, addr, port)
 
         self._n_iter: int = n_iter
@@ -97,6 +100,8 @@ class ADMMClient(_ADMMBase, Client):
         else:
             self._do_dp = False
             log.warning(f"DP Disabled: Received {dp_params[1]} <= 0.")
+        # New flag for elastic aggregation
+        self.elastic_aggregation = elastic_aggregation
 
     @staticmethod
     def _clip(v: FArr, thresh: float) -> FArr:
@@ -164,8 +169,12 @@ class ADMMClient(_ADMMBase, Client):
                 x_upd_noise = 0
 
             du = 2 * self._step * (rsd + x_upd_noise)
-
-            self.send_array(du)
+            if self.elastic_aggregation:
+                sensitivity = self._x_update_sensitivity()
+                self.send_array(du)
+                self.send_array(np.array([sensitivity]))
+            else:
+                self.send_array(du)
             u += du
 
         return self
@@ -182,7 +191,12 @@ class ADMMServerParams(TypedDict, total=False):
     coeffs_full: bool
     coeff_history: bool
     weighted_aggregation: bool
-
+    elastic_aggregation: bool  # New flag to enable elastic aggregation on server
+    sens_momentum: float       # EMA momentum for sensitivity
+    tau: float                 # Hyperparameter tau for adaptive coefficient
+    clip_min: float            # Clipping lower bound for zeta
+    clip_max: float            # Clipping upper bound for zeta
+    ema_type: Literal["per", "global"]  # Type of EMA to use
 
 class ADMMServer(_ADMMBase, Server):
     def __init__(
@@ -197,6 +211,12 @@ class ADMMServer(_ADMMBase, Server):
         coeffs_full: bool = False,
         coeff_history: bool = False,
         weighted_aggregation: bool = False,
+        elastic_aggregation: bool = False,
+        sens_momentum: float = 0.9,
+        tau: float = 0.1,
+        clip_min: float = 0.8,
+        clip_max: float = 1.2,
+        ema_type: Literal["per", "global"] = "per",
     ) -> None:
         _ADMMBase.__init__(self, seed, step_size)
         Server.__init__(self, addr, port, max_clients)
@@ -212,6 +232,15 @@ class ADMMServer(_ADMMBase, Server):
 
         self._wagg: bool = weighted_aggregation
 
+        # New elastic aggregation attributes
+        self.elastic_aggregation = elastic_aggregation
+        self.sens_momentum = sens_momentum
+        self.tau = tau
+        self.clip_min = clip_min
+        self.clip_max = clip_max
+        self.ema_type = ema_type
+        self.sens_ema: FArr | None = None  # will be initialized in fit() when n_features is known
+    
     @property
     def coeffs(self) -> FArr:
         if self._keep_coeffs_full:
@@ -226,7 +255,7 @@ class ADMMServer(_ADMMBase, Server):
             raise RuntimeError("History has been disabled")
         return self._coeff_hist
 
-    def _z_update(self, _z: FArr) -> FArr:
+    def _z_update(self, du: FArr) -> FArr:
         raise NotImplementedError("This is meant to be overridden")
 
     def fit(
@@ -236,6 +265,7 @@ class ADMMServer(_ADMMBase, Server):
         dim_weights = n_features
         du: FArr = np.zeros(dim_weights)
         z: FArr = np.zeros_like(du)
+        self._coeffs = z.copy()
 
         self.activate_server()
         self._n_clients = len(self._client_conn)
@@ -256,9 +286,12 @@ class ADMMServer(_ADMMBase, Server):
         subs_size = max(1, int(self._n_clients * self._subset_size))
 
         rfds: list[socket]
+        # If using elastic aggregation, prepare lists to store updates and sensitivities.
         for iter in range(self._n_iter):
             subset = sample(conns, subs_size)
-            nsubs = len(subset)
+            updates_list = []   # list of (update, weight)
+            sensitivities_list = []  # list of (sensitivity, weight)
+            total_weight = 0.0
 
             for fd in subset:
                 self.send_array(z, fd)
@@ -272,29 +305,47 @@ class ADMMServer(_ADMMBase, Server):
 
                 for fd in rfds:
                     idx = conns.index(fd)
-                    u = self.recv_array(fd)
-
-                    if self._keep_coeffs_full:
-                        self._coeffs_full[idx + 1, :] = z
-                    if self._keep_coeff_hist:
-                        self._coeff_hist[idx + 1, iter, :] = u
-
-                    if self._wagg:
-                        du += n_data_client[idx] * u
+                    weight = n_data_client[idx] if self._wagg else 1.0
+                    if self.elastic_aggregation:
+                        update = self.recv_array(fd)
+                        sens = self.recv_array(fd)  # sensitivity sent as a one‐element array
+                        updates_list.append((update, weight))
+                        sensitivities_list.append((sens, weight))
                     else:
-                        du += u
-
+                        u = self.recv_array(fd)
+                        du += weight * u
                     subset.remove(fd)
+                    # if self._keep_coeffs_full:
+                    #     self._coeffs_full[idx + 1, :] = z
+                    # if self._keep_coeff_hist:
+                    #     self._coeff_hist[idx + 1, iter, :] = u
 
-            du /= nsubs
+            if self.elastic_aggregation:
+                # Compute weighted averages
+                total_weight = sum(w for (_, w) in updates_list)
+                weighted_update = sum(u * w for (u, w) in updates_list) / total_weight
+                aggregated_sens = sum(s[0] * w for (s, w) in sensitivities_list) / total_weight
+                # Initialize sens_ema on first iteration
+                if self.sens_ema is None:
+                    self.sens_ema = np.zeros_like(weighted_update)
+                # Update EMA (per coordinate if ema_type=="per")
+                if self.ema_type == "per":
+                    self.sens_ema = self.sens_momentum * self.sens_ema + (1 - self.sens_momentum) * weighted_update * 0 + (1 - self.sens_momentum) * aggregated_sens  # note: here we use aggregated sensitivity broadcast to all coordinates
+                else:
+                    # For global, use a scalar EMA
+                    self.sens_ema = self.sens_momentum * np.array([self.sens_ema]) + (1 - self.sens_momentum) * aggregated_sens
+                max_ema = np.max(self.sens_ema) if np.max(self.sens_ema) > 0 else 1.0
+                zeta = 1 + self.tau - (self.sens_ema / max_ema)
+                zeta = np.clip(zeta, self.clip_min, self.clip_max)
+                # Elastic update
+                du = weighted_update * zeta
+            else:
+                du /= len(subset) if len(subset) > 0 else 1
             z = self._z_update(du)
-
+            self._coeffs = z.copy()
             if self._keep_coeffs_full:
                 self._coeffs_full[0, :] = z
             if self._keep_coeff_hist:
                 self._coeff_hist[0, iter, :] = z
-
-        self._coeffs = z
         log.info("SSCoeff: %.4g" % (self.coeffs @ self.coeffs.T))
-
         return self

@@ -17,7 +17,7 @@ log = getLogger(__name__)
 
 def _rdp_gaussian_noise(
     sensitivity: float,
-    rdp_params: tuple[float, float],
+    rdp_params: tuple[float, float] = (4,1),
     size: tuple[int, ...] | int = 1,
     rng: Generator | None = None,
 ) -> FArr:
