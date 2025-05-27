@@ -1,0 +1,138 @@
+variables:
+  PKG_IND: $CI_COMMIT_SHORT_SHA
+  PKG_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_PROJECT_NAME}/${CI_COMMIT_TAG}"
+  GITHUB_USERNAME: GVourvachakis
+  GITHUB_TOKEN: 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
+  GITHUB_REPO_NAME: RDP_Fed_ADMM
+
+stages:
+  - sync
+  - test
+  - build
+  - publish
+  - release
+
+image: fedora:latest
+
+# NEW: GitHub sync job
+sync_from_github:
+  stage: sync
+  image: alpine/git:latest
+  before_script:
+    - git config --global user.email "ci@quantumhorizonlabs.com"
+    - git config --global user.name "GitLab CI Sync"
+  script:
+    - echo "🔄 Starting sync from GitHub repository..."
+    - echo "Current GitLab commit to $CI_COMMIT_SHORT_SHA"
+    # Add GitHub remote
+    - git remote add github https://$GITHUB_USERNAME:$GITHUB_TOKEN@github.com/$GITHUB_USERNAME/$GITHUB_REPO_NAME.git || echo "Remote already exists"
+    
+    # Fetch latest from GitHub
+    - git fetch github
+    - echo "📥 Fetched latest changes from GitHub"
+    
+    # Check if there are new commits to sync
+    - |
+      if git diff --quiet HEAD github/main; then
+        echo "✅ Repositories are already in sync"
+      else
+        echo "🔄 New changes detected, merging..."
+        git merge github/main --no-edit --allow-unrelated-histories
+        git push origin $CI_DEFAULT_BRANCH
+        echo "✅ Sync completed successfully"
+      fi
+  rules:
+    # Run on scheduled pipelines
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    # Also allow manual trigger
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+      allow_failure: true
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+test_lint:
+  stage: test
+  script:
+    - echo "Installing packages"
+    - dnf install -y which ruff
+    - echo "Running linting check with $(which ruff)"
+    - ruff check .
+
+test_types:
+  stage: test
+  allow_failure: false
+  script:
+    - echo "Installing packages"
+    - dnf install -y python3-pip
+    - echo "Generating venv"
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install basedpyright .
+    - echo "Performing type check"
+    - 'basedpyright --gitlabcodequality ci-report.json -p ./pyproject.toml
+      rdp_fed_admm'
+    - echo "Checking type coverage"
+    - basedpyright --ignoreexternal --verifytypes rdp_fed_admm
+  artifacts:
+    reports:
+      codequality: ci-report.json
+
+fedora_build:
+  stage: build
+  script:
+    - echo "Installing packages"
+    - dnf install -y which hatch
+    - echo "Building with $(which hatch)"
+    - hatch build
+  artifacts:
+    paths:
+      - "./dist/*.whl"
+
+publish:
+  stage: publish
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v?\d+\.\d+\.\d+$/'
+  dependencies:
+    - fedora_build
+  script:
+    - dnf install -y jq
+    - ls -l ./dist/*.whl
+    - 'export FILE=$(ls ./dist/*.whl)'
+    - 'export FNAME=$(basename $FILE)'
+    - 'echo FNAME=$FNAME > publish.env && echo $FILE'
+    - 'cat publish.env'
+    - 'echo $PKG_URL/$FNAME $FILE'
+    - 'curl --verbose --location --header "JOB-TOKEN: ${CI_JOB_TOKEN}"
+      --upload-file $FILE "$PKG_URL/$FNAME"'
+    - 'curl --verbose --header "PRIVATE-TOKEN: ${CI_API_TOKEN}"
+      "$CI_API_V4_URL/projects/$CI_PROJECT_ID/repository/changelog?version=${CI_COMMIT_TAG}"'
+    - cat release_notes.md
+  artifacts:
+    paths:
+      - release_notes.md
+    reports:
+      dotenv: publish.env
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v?\d+\.\d+\.\d+$/'
+  dependencies:
+    - publish
+  script:
+    - echo "Running release job"
+    - echo $FNAME
+  release:
+    name: 'Release $CI_COMMIT_TAG'
+    description: release_notes.md
+    tag_name: $CI_COMMIT_SHA
+    ref: $CI_COMMIT_SHA
+    assets:
+      links:
+        - name: $FNAME
+          url: $PKG_URL/$FNAME
