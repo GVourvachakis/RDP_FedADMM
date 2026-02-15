@@ -39,8 +39,8 @@ rdp_fed_admm/
 
 The project is designed with OOP principles and pluggable components:
 
-- **`-net.py`** — A lightweight `sockets`-based network layer with `client` and `server` classes communicating via `recv_array()`, which efficiently serializes and transfers `numpy` arrays over the wire.
-- **`-admm.py`** — Specializes the network layer for ADMM by introducing common hyperparameters (ρ, penalty terms), caching of intermediate updates, and synchronization primitives.
+- **`_net.py`** — A lightweight `sockets`-based network layer with `client` and `server` classes communicating via `recv_array()`, which efficiently serializes and transfers `numpy` arrays over the wire.
+- **`_admm.py`** — Specializes the network layer for ADMM by introducing common hyperparameters (ρ, penalty terms), caching of intermediate updates, and synchronization primitives.
 - **`objectives/`** — Pluggable objective modules. Currently exposes:
   - `lasso.py` — Standard LASSO regression objective.
   - `elasticnet.py` — Elastic Net objective with modified weighted aggregation to reduce client drift.
